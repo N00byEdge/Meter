@@ -50,44 +50,72 @@ struct Declaration {
   std::shared_ptr<Expression> valueAssigned;
 };
 
-struct CompoundExpression {
-  enum struct Type {
-    Addition,        // lhs + rhs
-    Subtraction,     // lhs - rhs
-    Multiplication,  // lhs * rhs
-    Division,        // lhs / rhs
-    UnaryMinus,      // -rhs
-    UnaryNot,        // !expr
-    Equals,          // lhs == rhs
-    NotEquals,       // lhs != rhs
-    LogicalAnd,      // lhs && rhs
-    LogicalOr,       // lhs || rhs
-    BitwiseAnd,      // lhs & rhs
-    BitwiseOr,       // lhs | rhs
-    BitwiseXor,      // lhs ^ rhs
-    AddressOf,       // &rhs
-    Dereference,     // *rhs
-    Assignment,      // lhs = rhs
-    FunctionCall,    // func(args, ...)
-    Paren,           // ( expr; ... )
-    Return,          // return rhs
-    MemberAccess,    // lhs.rhs
-    Preincrement,    // ++expr
-    Postincrement,   // expr++
-    Predecrement,    // --expr
-    Postdecrement,   // expr--
-    CommaExpression, // lhs, rhs
-  };
+struct Addition       { std::shared_ptr<Expression> lhs, rhs; };
+struct Subtraction    { std::shared_ptr<Expression> lhs, rhs; };
+struct Multiplication { std::shared_ptr<Expression> lhs, rhs; };
+struct Division       { std::shared_ptr<Expression> lhs, rhs; };
+struct Modulus        { std::shared_ptr<Expression> lhs, rhs; };
 
-  Type type;
-  std::vector<Expression> parameters;
-};
+struct Equals { std::shared_ptr<Expression> lhs, rhs; };
+struct NotEquals { std::shared_ptr<Expression> lhs, rhs; };
+
+struct LogicalAnd { std::shared_ptr<Expression> lhs, rhs; };
+struct LogicalOr  { std::shared_ptr<Expression> lhs, rhs; };
+
+struct BitwiseAnd { std::shared_ptr<Expression> lhs, rhs; };
+struct BitwiseOr  { std::shared_ptr<Expression> lhs, rhs; };
+struct BitwiseXor { std::shared_ptr<Expression> lhs, rhs; };
+
+struct UnaryMinus  { std::shared_ptr<Expression> expr; };
+struct AddressOf   { std::shared_ptr<Expression> expr; };
+struct Dereference { std::shared_ptr<Expression> expr; };
+struct UnaryNot    { std::shared_ptr<Expression> expr; };
+
+struct Assignment { std::shared_ptr<Expression> lhs, rhs; };
+
+struct TemplateInst { std::shared_ptr<Expression> templ; std::vector<Expression> arguments; };
+struct FunctionCall { std::shared_ptr<Expression> functor; std::vector<Expression> arguments; };
+
+struct Return       { std::shared_ptr<Expression> expr; };
+struct MemberAccess { std::shared_ptr<Expression> lhs; std::string rhs; };
+
+struct Preincrement  { std::shared_ptr<Expression> expr; };
+struct Predecrement  { std::shared_ptr<Expression> expr; };
+struct Postincrement { std::shared_ptr<Expression> expr; };
+struct Postdecrement { std::shared_ptr<Expression> expr; };
+
+struct CommaExpression { std::shared_ptr<Expression> lhs, rhs; };
 
 struct NoOp { };
 
 using ExprT = std::variant<Identifier
                          , NoOp
-                         , CompoundExpression
+                         , Addition
+                         , Subtraction
+                         , Multiplication
+                         , Division
+                         , Modulus
+                         , Equals
+                         , NotEquals
+                         , LogicalAnd
+                         , LogicalOr
+                         , BitwiseAnd
+                         , BitwiseOr
+                         , BitwiseXor
+                         , UnaryMinus
+                         , AddressOf
+                         , Dereference
+                         , UnaryNot
+                         , Assignment
+                         , TemplateInst
+                         , FunctionCall
+                         , Return
+                         , MemberAccess
+                         , Preincrement
+                         , Predecrement
+                         , Postincrement
+                         , Postdecrement
+                         , CommaExpression
                          , Type
                          , Declaration
                          , std::string
@@ -150,18 +178,49 @@ std::ostream &operator<<(std::ostream &os, Qualifier const &q) {
   return os;
 }
 
+#include <iterator>
+
+template<typename Container>
+void printExpressions(std::ostream &os, Container const &cnt, char const *delim);
+
 std::ostream &operator<<(std::ostream &os, ExprT const &ex) {
+  //os << '(';
   std::visit([&os](auto ex) {
     if constexpr(std::is_same_v<decltype(ex), Identifier>) { os << '[' << ex << ']'; }
     else if constexpr(std::is_same_v<decltype(ex), NoOp>) { }
-    else if constexpr(std::is_same_v<decltype(ex), CompoundExpression>) { os << (int)ex.type << "{"; for(auto &e:ex.parameters) os << e; os << '}'; }
+    else if constexpr(std::is_same_v<decltype(ex), Addition>)       { os << *ex.lhs << '+' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), Subtraction>)    { os << *ex.lhs << '-' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), Multiplication>) { os << *ex.lhs << '*' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), Division>)       { os << *ex.lhs << '/' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), Modulus>)        { os << *ex.lhs << '%' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), Equals>)     { os << *ex.lhs << "==" << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), NotEquals>)  { os << *ex.lhs << "!=" << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), LogicalAnd>) { os << *ex.lhs << "&&" << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), LogicalOr>)  { os << *ex.lhs << "||" << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), BitwiseAnd>) { os << *ex.lhs << '&' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), BitwiseOr>)  { os << *ex.lhs << '|' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), BitwiseXor>) { os << *ex.lhs << '^' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), UnaryMinus>)  { os << '-' << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), AddressOf>)   { os << '&' << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), Dereference>) { os << '*' << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), UnaryNot>)    { os << '!' << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), Assignment>)   { os << *ex.lhs << '=' << *ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), FunctionCall>) { os << *ex.functor << '('; printExpressions(os, ex.arguments, ","); os << ')'; }
+    else if constexpr(std::is_same_v<decltype(ex), TemplateInst>) { os << *ex.templ   << '<'; printExpressions(os, ex.arguments, ","); os << '>'; }
+    else if constexpr(std::is_same_v<decltype(ex), Return>) { os << "return " << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), MemberAccess>) { os << *ex.lhs << '.' << ex.rhs; }
+    else if constexpr(std::is_same_v<decltype(ex), Preincrement>)  { os << "++" << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), Predecrement>)  { os << "--" << *ex.expr; }
+    else if constexpr(std::is_same_v<decltype(ex), Postincrement>) { os << *ex.expr << "++"; }
+    else if constexpr(std::is_same_v<decltype(ex), Postdecrement>) { os << *ex.expr << "--"; }
+    else if constexpr(std::is_same_v<decltype(ex), CommaExpression>) { os << *ex.lhs << ", " << *ex.rhs; }
     else if constexpr(std::is_same_v<decltype(ex), Type>) { os << *ex.type << ex.qual; }
     else if constexpr(std::is_same_v<decltype(ex), Declaration>) {
       if(ex.valueAssigned) os << "decl: " << *ex.type << " " << ex.ident << '{' << *ex.valueAssigned << '}';
       else                 os << "decl: " << *ex.type << " " << ex.ident;
     }
     else if constexpr(std::is_same_v<decltype(ex), std::string>) { os << '"' << ex << '"'; }
-    else if constexpr(std::is_same_v<decltype(ex), int>) { os << ex; }
+    else if constexpr(std::is_same_v<decltype(ex), int>) { os << ex << 'i'; }
     else if constexpr(std::is_same_v<decltype(ex), unsigned>) { os << ex << 'u'; }
     else if constexpr(std::is_same_v<decltype(ex), long long>) { os << ex << "ll"; }
     else if constexpr(std::is_same_v<decltype(ex), unsigned long long>) { os << ex << "ull"; }
@@ -169,7 +228,15 @@ std::ostream &operator<<(std::ostream &os, ExprT const &ex) {
     else if constexpr(std::is_same_v<decltype(ex), double>) { os << ex << 'd'; }
     else { os << "Unknown expression"; }
   }, ex);
+  //os << ')';
   return os;
+}
+
+template<typename Container>
+void printExpressions(std::ostream &os, Container const &cnt, char const *delim) {
+  if(!std::distance(cnt.begin(), cnt.end())) return;
+  std::copy(cnt.begin(), cnt.end()-1, std::ostream_iterator<ExprT>(os, delim));
+  os << cnt.back();
 }
 
 std::ostream &operator<<(std::ostream &os, StatementT const &stmt) {
@@ -179,7 +246,7 @@ std::ostream &operator<<(std::ostream &os, StatementT const &stmt) {
     else if constexpr(std::is_same_v<decltype(st), For>) { os << "for(" << st.initialization << ", " << st.condition << ", " << st.loopEnd << ") " << *st.loopBody; }
     else if constexpr(std::is_same_v<decltype(st), DoWhile>) { os << "do " << st.loopBody << " while (" << st.condition << ')'; }
     else if constexpr(std::is_same_v<decltype(st), IfElse>) { os << "if(" << st.condition << ") " << *st.taken << " else " << *st.notTaken; }
-    else if constexpr(std::is_same_v<decltype(st), Expression>) { os << st; }
+    else if constexpr(std::is_same_v<decltype(st), Expression>) { os << st << ';'; }
     else { os << "Unknown statement"; }
   }, stmt);
   return os;
@@ -232,8 +299,8 @@ namespace yy { Parser::symbol_type yylex(LexerContext &ctx); }
 %type<std::string> IDENTIFIER
 %type<int> INTLITERAL
 %type<Expression> expression
+%type<std::vector<Expression>> exprList
 %type<Declaration> declaration intializedDeclaration uninitializedDeclaration
-%type<CompoundExpression> cexpr
 %type<Qualifier> qualifier
 %type<Type> type
 %type<IfElse> ifStatement
@@ -255,37 +322,41 @@ statement: expression ';'     { $$ = Statement{M($1)}; }
          | strongStatement    { $$ = M($1); }
          | ';'                { $$ = NoOp{}; }
 
-expression: expression '.' expression     { CompoundExpression exp{CompoundExpression::Type::MemberAccess}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
+expression: expression '.' IDENTIFIER     { $$ = MemberAccess{std::make_shared<Expression>(M($1)), M($3)}; }
           | declaration                   { $$ = Expression{M($1)}; }
-          | expression '=' expression     { CompoundExpression exp{CompoundExpression::Type::Assignment}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
+          | expression '=' expression     { $$ = Assignment{std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
           | IDENTIFIER                    { $$ = Expression{Identifier{M($1)}}; }
-          | "++" expression               { CompoundExpression exp{CompoundExpression::Type::Preincrement}; exp.parameters.emplace_back(M($2)); $$ = M(exp); }
-          | "--" expression %prec "++"    { CompoundExpression exp{CompoundExpression::Type::Predecrement}; exp.parameters.emplace_back(M($2)); $$ = M(exp); }
-          | expression "++" %prec "--"    { CompoundExpression exp{CompoundExpression::Type::Postincrement}; exp.parameters.emplace_back(M($1)); $$ = M(exp); }
-          | expression "--"               { CompoundExpression exp{CompoundExpression::Type::Postdecrement}; exp.parameters.emplace_back(M($1)); $$ = M(exp); }
-          | '!' expression                { CompoundExpression exp{CompoundExpression::Type::UnaryNot}; exp.parameters.emplace_back(M($2)); $$ = M(exp); }
-          | '&' expression %prec '!'      { CompoundExpression exp{CompoundExpression::Type::AddressOf}; exp.parameters.emplace_back(M($2)); $$ = M(exp); }
-          | '*' expression %prec '!'      { CompoundExpression exp{CompoundExpression::Type::Dereference}; exp.parameters.emplace_back(M($2)); $$ = M(exp); }
-          | '-' expression %prec '!'      { CompoundExpression exp{CompoundExpression::Type::UnaryMinus}; exp.parameters.emplace_back(M($2)); $$ = M(exp); }
-          | expression '+' expression     { CompoundExpression exp{CompoundExpression::Type::Addition}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression '-' expression     { CompoundExpression exp{CompoundExpression::Type::Subtraction}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression '*' expression     { CompoundExpression exp{CompoundExpression::Type::Multiplication}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression '/' expression     { CompoundExpression exp{CompoundExpression::Type::Division}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression '&' expression     { CompoundExpression exp{CompoundExpression::Type::BitwiseAnd}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression '|' expression     { CompoundExpression exp{CompoundExpression::Type::BitwiseOr}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression '^' expression     { CompoundExpression exp{CompoundExpression::Type::BitwiseXor}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression "&&" expression    { CompoundExpression exp{CompoundExpression::Type::LogicalAnd}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression "||" expression    { CompoundExpression exp{CompoundExpression::Type::LogicalOr}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | expression "!=" expression    { CompoundExpression exp{CompoundExpression::Type::NotEquals}; exp.parameters.emplace_back(M($1)); exp.parameters.emplace_back(M($3)); $$ = M(exp); }
-          | '(' expression ')'            { CompoundExpression paren{CompoundExpression::Type::Paren}; paren.parameters.emplace_back(M($2)); $$ = M(paren); }
+          | "++" expression               { $$ = Preincrement {std::make_shared<Expression>(M($2))}; }
+          | "--" expression %prec "++"    { $$ = Predecrement {std::make_shared<Expression>(M($2))}; }
+          | expression "++" %prec "--"    { $$ = Postincrement{std::make_shared<Expression>(M($1))}; }
+          | expression "--"               { $$ = Postdecrement{std::make_shared<Expression>(M($1))}; }
+          | '!' expression                { $$ = UnaryNot   {std::make_shared<Expression>(M($2))}; }
+          | '&' expression %prec '!'      { $$ = AddressOf  {std::make_shared<Expression>(M($2))}; }
+          | '*' expression %prec '!'      { $$ = Dereference{std::make_shared<Expression>(M($2))}; }
+          | '-' expression %prec '!'      { $$ = UnaryMinus {std::make_shared<Expression>(M($2))}; }
+          | expression '+'  expression    { $$ = Addition      {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '-'  expression    { $$ = Subtraction   {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '*'  expression    { $$ = Multiplication{std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '/'  expression    { $$ = Division      {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '%'  expression    { $$ = Modulus       {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '&'  expression    { $$ = BitwiseAnd    {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '|'  expression    { $$ = BitwiseOr     {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression '^'  expression    { $$ = BitwiseXor    {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression "&&" expression    { $$ = LogicalAnd    {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression "||" expression    { $$ = LogicalOr     {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression "==" expression    { $$ = Equals        {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | expression "!=" expression    { $$ = NotEquals     {std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+          | '(' expression ')'            { $$ = M($2); }
         //| expression expression         { CompoundExpression call{CompoundExpression::Type::FunctionCall}; call.parameters.emplace_back(M($2)); call.parameters.emplace_back(M($1)); $$ = M(call); }
-          | expression '<' expression '>' { CompoundExpression call{CompoundExpression::Type::FunctionCall}; call.parameters.emplace_back(M($1)); call.parameters.emplace_back(M($3)); $$ = M(call); }
-          | expression '(' expression ')' { CompoundExpression call{CompoundExpression::Type::FunctionCall}; call.parameters.emplace_back(M($1)); call.parameters.emplace_back(M($3)); $$ = M(call); }
-          | "return" expression           { CompoundExpression ret{CompoundExpression::Type::Return}; ret.parameters.emplace_back(M($2)); $$ = M(ret); }
-          | cexpr                         { $$ = {M($1)}; }
+          | expression '<' exprList '>'   { $$ = TemplateInst{std::make_shared<Expression>(M($1)), M($3)}; }
+          | expression '(' exprList ')'   { $$ = FunctionCall{std::make_shared<Expression>(M($1)), M($3)}; }
+          | "return" expression           { $$ = Return{std::make_shared<Expression>(M($2))}; }
+          | expression ',' expression     { $$ = CommaExpression{std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
           | INTLITERAL                    { $$ = {M($1)}; } 
 
-cexpr: expression ',' expression                                   { CompoundExpression cexpr{CompoundExpression::Type::CommaExpression}; cexpr.parameters.emplace_back(M($1)); cexpr.parameters.emplace_back(M($3)); $$ = M(cexpr); }
+exprList: expression              { $$ = {};    $$.emplace_back(M($1)); }
+        | exprList ',' expression { $$ = M($1); $$.emplace_back(M($3)); }
+        | %empty                  { $$ = {}; }
 
 qualifier: %empty               { $$ = Qualifier{Qualifier::Type::None}; }
          | "const"    qualifier { $$ = Qualifier{static_cast<Qualifier::Type>(static_cast<int>($2.type) | static_cast<int>(Qualifier::Type::Const))}; }
@@ -333,7 +404,7 @@ yy::Parser::symbol_type yy::yylex(LexerContext &context) {
     "do"      { return s(Parser::make_DO); }
     "if"      { return s(Parser::make_IF); }
     "else"    { return s(Parser::make_ELSE); }
-    "strong" { return s(Parser::make_STRONG); }
+    "strong"  { return s(Parser::make_STRONG); }
     //"val" | "value" | "local" { return s(Parser::make_VALUE); }
     //"ref" | "reference"       { return s(Parser::make_REFERENCE); }
     //"ptr" | "pointer"         { return s(Parser::make_POINTER); }
