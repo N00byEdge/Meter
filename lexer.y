@@ -30,9 +30,19 @@ struct Qualifier {
     None     = 0,
     Const    = 1 << 0,
     Volatile = 1 << 1,
-    Static   = 1 << 2,
-    Mutable  = 1 << 3,
-    Override = 1 << 4,
+    Mutable  = 1 << 2,
+    Override = 1 << 3,
+  };
+  Type type;
+};
+
+struct StorageSpecifier {
+  enum struct Type: std::uint8_t {
+    None        = 0,
+    Static      = 1 << 0,
+    ThreadLocal = 1 << 1,
+    Register    = 1 << 2,
+    Extern      = 1 << 3,
   };
   Type type;
 };
@@ -42,12 +52,13 @@ struct Expression;
 struct Type {
   std::shared_ptr<Expression> type;
   Qualifier qual;
+  StorageSpecifier storage;
 };
 
 struct Declaration {
   std::shared_ptr<Expression> type;
   Identifier ident;
-  std::shared_ptr<Expression> valueAssigned;
+  std::vector<Expression> arguments;
 };
 
 struct Addition       { std::shared_ptr<Expression> lhs, rhs; };
@@ -56,7 +67,7 @@ struct Multiplication { std::shared_ptr<Expression> lhs, rhs; };
 struct Division       { std::shared_ptr<Expression> lhs, rhs; };
 struct Modulus        { std::shared_ptr<Expression> lhs, rhs; };
 
-struct Equals { std::shared_ptr<Expression> lhs, rhs; };
+struct Equals    { std::shared_ptr<Expression> lhs, rhs; };
 struct NotEquals { std::shared_ptr<Expression> lhs, rhs; };
 
 struct LogicalAnd { std::shared_ptr<Expression> lhs, rhs; };
@@ -84,7 +95,7 @@ struct Predecrement  { std::shared_ptr<Expression> expr; };
 struct Postincrement { std::shared_ptr<Expression> expr; };
 struct Postdecrement { std::shared_ptr<Expression> expr; };
 
-struct CommaExpression { std::shared_ptr<Expression> lhs, rhs; };
+//struct CommaExpression { std::shared_ptr<Expression> lhs, rhs; };
 
 struct NoOp { };
 
@@ -115,9 +126,9 @@ using ExprT = std::variant<Identifier
                          , Predecrement
                          , Postincrement
                          , Postdecrement
-                         , CommaExpression
+                       //, CommaExpression
                          , Type
-                         , Declaration
+                         , std::vector<Declaration>
                          , std::string
                          , int
                          , unsigned
@@ -172,9 +183,16 @@ struct Statement: StatementT { using StatementT::StatementT; };
 std::ostream &operator<<(std::ostream &os, Qualifier const &q) {
   if(static_cast<int>(q.type) & static_cast<int>(Qualifier::Type::Const)) os << " const";
   if(static_cast<int>(q.type) & static_cast<int>(Qualifier::Type::Volatile)) os << " volatile";
-  if(static_cast<int>(q.type) & static_cast<int>(Qualifier::Type::Static)) os << " static";
   if(static_cast<int>(q.type) & static_cast<int>(Qualifier::Type::Mutable)) os << " mutable";
   if(static_cast<int>(q.type) & static_cast<int>(Qualifier::Type::Override)) os << " override";
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, StorageSpecifier const &q) {
+  if(static_cast<int>(q.type) & static_cast<int>(StorageSpecifier::Type::Static)) os << "static ";
+  if(static_cast<int>(q.type) & static_cast<int>(StorageSpecifier::Type::ThreadLocal)) os << "thread_local ";
+  if(static_cast<int>(q.type) & static_cast<int>(StorageSpecifier::Type::Register)) os << "register ";
+  if(static_cast<int>(q.type) & static_cast<int>(StorageSpecifier::Type::Extern)) os << "extern ";
   return os;
 }
 
@@ -213,7 +231,7 @@ std::ostream &operator<<(std::ostream &os, ExprT const &ex) {
     else if constexpr(std::is_same_v<decltype(ex), Predecrement>)  { os << "--" << *ex.expr; }
     else if constexpr(std::is_same_v<decltype(ex), Postincrement>) { os << *ex.expr << "++"; }
     else if constexpr(std::is_same_v<decltype(ex), Postdecrement>) { os << *ex.expr << "--"; }
-    else if constexpr(std::is_same_v<decltype(ex), CommaExpression>) { os << *ex.lhs << ", " << *ex.rhs; }
+  //else if constexpr(std::is_same_v<decltype(ex), CommaExpression>) { os << *ex.lhs << ", " << *ex.rhs; }
     else if constexpr(std::is_same_v<decltype(ex), Type>) { os << *ex.type << ex.qual; }
     else if constexpr(std::is_same_v<decltype(ex), Declaration>) {
       if(ex.valueAssigned) os << "decl: " << *ex.type << " " << ex.ident << '{' << *ex.valueAssigned << '}';
@@ -273,7 +291,7 @@ namespace yy { Parser::symbol_type yylex(LexerContext &ctx); }
 %token IDENTIFIER
 %token RETURN "return" IF "if" ELSE "else" DO "do" WHILE "while" FOR "for" POINTER "ptr" REFERENCE "ref" VALUE "val" TYPE "type" FUNC "func"
 %token OR "||" AND "&&" EQ "==" NE "!=" INC "++" DEC "--" PLEQ "+=" MIEQ "-=" THREEWAY "<=>" STRONG "strong"
-%token CONST "const" VOLATILE "volatile" STATIC "static" MUTABLE "mutable" OVERRIDE "override"
+%token CONST "const" VOLATILE "volatile" STATIC "static" MUTABLE "mutable" OVERRIDE "override" THREADLOCAL "thread_local" REGISTER "register" EXTERN "extern"
 %token INTLITERAL CHARLITERAL UNSIGNEDLITERAL LONGLONGLITERAL UNISGNEDLONGLONGLITERAL FLOATLITERAL DOUBLELITERAL
 
 %left ','
@@ -300,8 +318,10 @@ namespace yy { Parser::symbol_type yylex(LexerContext &ctx); }
 %type<int> INTLITERAL
 %type<Expression> expression
 %type<std::vector<Expression>> exprList
-%type<Declaration> declaration intializedDeclaration uninitializedDeclaration
+%type<Declaration> decl
+%type<std::vector<Declaration>> decllist declaration
 %type<Qualifier> qualifier
+%type<StorageSpecifier> storageSpecifier
 %type<Type> type
 %type<IfElse> ifStatement
 %type<Statement> statement forStatement ifElse whileStatement doWhile strongStatement
@@ -323,7 +343,7 @@ statement: expression ';'     { $$ = Statement{M($1)}; }
          | ';'                { $$ = NoOp{}; }
 
 expression: expression '.' IDENTIFIER     { $$ = MemberAccess{std::make_shared<Expression>(M($1)), M($3)}; }
-          | declaration                   { $$ = Expression{M($1)}; }
+          | declaration                   { $$ = {M($1)}; }
           | expression '=' expression     { $$ = Assignment{std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
           | IDENTIFIER                    { $$ = Expression{Identifier{M($1)}}; }
           | "++" expression               { $$ = Preincrement {std::make_shared<Expression>(M($2))}; }
@@ -351,7 +371,7 @@ expression: expression '.' IDENTIFIER     { $$ = MemberAccess{std::make_shared<E
           | expression '<' exprList '>'   { $$ = TemplateInst{std::make_shared<Expression>(M($1)), M($3)}; }
           | expression '(' exprList ')'   { $$ = FunctionCall{std::make_shared<Expression>(M($1)), M($3)}; }
           | "return" expression           { $$ = Return{std::make_shared<Expression>(M($2))}; }
-          | expression ',' expression     { $$ = CommaExpression{std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
+        //| expression ',' expression     { $$ = CommaExpression{std::make_shared<Expression>(M($1)), std::make_shared<Expression>(M($3))}; }
           | INTLITERAL                    { $$ = {M($1)}; } 
 
 exprList: expression              { $$ = {};    $$.emplace_back(M($1)); }
@@ -361,20 +381,35 @@ exprList: expression              { $$ = {};    $$.emplace_back(M($1)); }
 qualifier: %empty               { $$ = Qualifier{Qualifier::Type::None}; }
          | "const"    qualifier { $$ = Qualifier{static_cast<Qualifier::Type>(static_cast<int>($2.type) | static_cast<int>(Qualifier::Type::Const))}; }
          | "volatile" qualifier { $$ = Qualifier{static_cast<Qualifier::Type>(static_cast<int>($2.type) | static_cast<int>(Qualifier::Type::Volatile))}; }
-         | "static"   qualifier { $$ = Qualifier{static_cast<Qualifier::Type>(static_cast<int>($2.type) | static_cast<int>(Qualifier::Type::Static))}; }
          | "mutable"  qualifier { $$ = Qualifier{static_cast<Qualifier::Type>(static_cast<int>($2.type) | static_cast<int>(Qualifier::Type::Mutable))}; }
          | "override" qualifier { $$ = Qualifier{static_cast<Qualifier::Type>(static_cast<int>($2.type) | static_cast<int>(Qualifier::Type::Override))}; }
 
-type: expression qualifier { $$ = Type{std::make_unique<Expression>(M($1)), M($2)}; }
+storageSpecifier: %empty                          { $$ = StorageSpecifier{StorageSpecifier::Type::None}; }
+                | "static"       storageSpecifier { $$ = StorageSpecifier{static_cast<StorageSpecifier::Type>(static_cast<int>($2.type) | static_cast<int>(StorageSpecifier::Type::Static))}; }
+                | "thread_local" storageSpecifier { $$ = StorageSpecifier{static_cast<StorageSpecifier::Type>(static_cast<int>($2.type) | static_cast<int>(StorageSpecifier::Type::ThreadLocal))}; }
+                | "register"     storageSpecifier { $$ = StorageSpecifier{static_cast<StorageSpecifier::Type>(static_cast<int>($2.type) | static_cast<int>(StorageSpecifier::Type::Register))}; }
+                | "extern"       storageSpecifier { $$ = StorageSpecifier{static_cast<StorageSpecifier::Type>(static_cast<int>($2.type) | static_cast<int>(StorageSpecifier::Type::Extern))}; }
 
-uninitializedDeclaration: type IDENTIFIER                          { $$ = Declaration{std::make_shared<Expression>(M($1)), M($2), nullptr}; }
+type: storageSpecifier expression qualifier { $$ = Type{std::make_unique<Expression>(M($2)), M($3), M($1)}; }
+
+declaration: type decllist { $$ = M($2); auto tp = std::make_shared<Expression>(M($1)); for(auto &decl: $$) decl.type = tp; }
+
+decllist: decl              { $$.emplace_back(M($1)); }
+        | decllist ',' decl { $$ = M($1); $$.emplace_back(M($3)); }
+
+decl: IDENTIFIER '=' expression   { $$ = { nullptr, M($1) }; $$.arguments.emplace_back(M($3)); }
+    | IDENTIFIER '{' exprList '}' { $$ = { nullptr, M($1), M($3)}; }
+    | IDENTIFIER '(' exprList ')' { $$ = { nullptr, M($1), M($3)}; }
+    | IDENTIFIER                  { $$ = { nullptr, M($1)}; }
+
+/*uninitializedDeclaration: type IDENTIFIER                          { $$ = Declaration{std::make_shared<Expression>(M($1)), M($2), nullptr}; }
 
 intializedDeclaration: uninitializedDeclaration '{' expression '}' { $1.valueAssigned = std::make_shared<Expression>(M($3)); $$ = M($1); }
                      | uninitializedDeclaration '=' expression     { $1.valueAssigned = std::make_shared<Expression>(M($3)); $$ = M($1); }
                      | IDENTIFIER '{' expression '}'               { $$ = Declaration{nullptr, M($1), std::make_shared<Expression>(M($3))}; }
 
 declaration: uninitializedDeclaration { $$ = M($1); }
-           | intializedDeclaration    { $$ = M($1); }
+           | intializedDeclaration    { $$ = M($1); }*/
 
 ifStatement:      "if"    '(' expression ')' statement                               { $$ = IfElse{M($3), std::make_shared<Statement>(M($5))}; }
 ifElse:           ifStatement "else" statement                                       { $1.notTaken = std::make_shared<Statement>(M($3)); $$ = M($1); }
