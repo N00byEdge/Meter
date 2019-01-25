@@ -1,0 +1,21 @@
+struct A {
+  int fem = 5;
+}
+strong Fem = int;
+{
+  fem;
+}
+{
+  fem = 5;
+}
+{
+  int fem;
+  do {
+    kek;
+  } while(fem());
+}
+{
+  f(x,y,z)(fem,sex,sju)(a,b,c);
+  int fem = (5 + 2);
+  return --fem++ && *&++fem-- || false != fem == true;
+}
