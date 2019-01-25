@@ -4,15 +4,11 @@ all: build/lexer;
 build/lexer.d/:
 	mkdir -p build/lexer.d/
 
-build/lexer.d/%.cc.re: %.y build/lexer.d/;
-	bison -t -Slalr1.cc --report=all $< -o $@
+build/lexer.d/%.o: Source/%.cc Source/Meter/*.hh build/lexer.d/ Makefile;
+	g++-7 -std=gnu++17 -c $< -g -ISource/ -o $@ -Wall -O3
 
-build/lexer.d/%.cc: build/lexer.d/%.cc.re;
-	re2c $< -o $@
-	
-build/lexer: build/lexer.d/lexer.cc;
-	clang++-8 -std=c++17 $< -g -o $@ -DYYDEBUG=1 -Wall -O3 -fsanitize=address,undefined
+build/lexer: build/lexer.d/main.o build/lexer.d/Tokenizer.o build/lexer.d/ASTizer.o;
+	g++-7 -std=gnu++17 $^ -g -o $@ -Wall -O3
 
 clean:
 	rm -rf build/
-
