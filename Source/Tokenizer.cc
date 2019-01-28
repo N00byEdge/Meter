@@ -39,8 +39,7 @@ namespace {
           if('a' <= i && i <= 'z') return 1;
           if('A' <= i && i <= 'Z') return 1;
           if('0' <= i && i <= '9') return 1;
-          auto otherAllowed = std::string_view{"#$@_"};
-          if(otherAllowed.find(i) != std::string_view::npos) return 1;
+          if(i == '_') return 1;
           // Allow any unicode char
           if(i & 0x80)
             return consumeUTF8(i);
