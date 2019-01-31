@@ -1,4 +1,3 @@
-#include "Meter/Token.hh"
 #include "Meter/AST.hh"
 
 #include <fstream>
@@ -10,16 +9,14 @@ std::string loadFile(T &&v) {
   return s;
 }
 
-#include <queue>
 #include <iostream>
 
 template<typename T>
 void test(T &&v) {
-  std::deque<Meter::Tokens::Token> tokens;
   auto s = loadFile(v);
-  auto fp = s.c_str();
+  Meter::Tokens::ParserContext ctx{s.c_str()};
   while(1) {
-    auto &token = tokens.emplace_back(Meter::Tokens::consumeToken(fp));
+    auto token = ctx.consume();
     std::visit([](auto token){
       if constexpr(std::is_same_v<decltype(token), Meter::Tokens::Literal>) {
         std::cout << "\nLiteral: \"" << token.value << "\", bytes: " << token.value.size() << std::endl;
@@ -31,6 +28,11 @@ void test(T &&v) {
       break;
   }
   std::cout << '\n';
+  ctx = Meter::Tokens::ParserContext{s.c_str()};
+  auto ast = Meter::AST::makeAST(ctx, std::cerr);
+  for(auto &o: ast) {
+    std::cout << o << '\n';
+  }
 }
 
 int main() {

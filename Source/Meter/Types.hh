@@ -1,3 +1,5 @@
+#pragma once
+
 #include <type_traits>
 
 namespace Meter {
@@ -19,4 +21,7 @@ namespace Meter {
                                            , typename Filter<Tail...>::type
     >;
   };
+
+  template<typename ...Fs> struct Overload: Fs... { using Fs::operator()...; };
+  template<typename ...Fs> Overload(Fs &&...vals) -> Overload<Fs...>;
 }

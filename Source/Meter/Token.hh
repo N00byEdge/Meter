@@ -1,7 +1,10 @@
 #pragma once
 
+#include "Meter/Types.hh"
+
 #include <variant>
 #include <string>
+#include <queue>
 
 namespace Meter::Tokens {
   struct TokenContext { int line; int column; };
@@ -104,5 +107,54 @@ namespace Meter::Tokens {
     , "while"_token
   ));
 
+  inline std::string_view tokenName(Token const &tok) {
+    return std::visit(Overload{
+        [&](auto op)          { return decltype(op)::value; }
+      , [&](Literal lit)      { return "literal";   }
+      , [&](Number num)       { return "number";    }
+      , [&](Float flt)        { return "float";     }
+      , [&](Identifier ident) { return "identifier"; }
+    }, tok);
+  }
+
   Meter::Tokens::Token consumeToken(char const *&s);
+
+  struct ParserContext {
+    char const *file;
+    std::deque<Meter::Tokens::Token> tokenQueue;
+
+    template<int idx = 0>
+    void ensureQueued() {
+      while(tokenQueue.size() <= idx) {
+        if (!file)
+          tokenQueue.push_back(Meter::Tokens::EndOfFile);
+
+        tokenQueue.emplace_back(Meter::Tokens::consumeToken(file));
+        if(std::holds_alternative<Meter::Tokens::EOF_T>(tokenQueue.back()))
+          file = nullptr;
+      }
+    }
+
+    template<int numAhead = 0>
+    [[nodiscard]] Meter::Tokens::Token &lookahead() {
+      ensureQueued<numAhead>();
+      return tokenQueue[numAhead];
+    }
+
+    template<int numAhead = 0, typename TokenT>
+    [[nodiscard]] bool lookaheadMatch(TokenT) {
+      return std::holds_alternative<TokenT>(lookahead<numAhead>());
+    }
+
+    void pop() {
+      ensureQueued();
+      tokenQueue.pop_front();
+    }
+
+    [[nodiscard]] Meter::Tokens::Token consume() {
+      auto ret = lookahead();
+      pop();
+      return ret;
+    }
+  };
 }

@@ -3,11 +3,13 @@
 #include "Meter/Token.hh"
 
 #include <memory>
-#include <deque>
 #include <iostream>
+#include <iterator>
 
 namespace Meter::AST {
   class Expression;
+  struct LeftAssociative;
+  struct RightAssociative;
   namespace Impl {
     using ExprRef = std::unique_ptr<Expression>;
 
@@ -28,8 +30,6 @@ namespace Meter::AST {
     };
   }
 
-  struct LeftAssociative;
-  struct RightAssociative;
   using namespace Meter::Tokens::Literals;
   using MemberAccess     = Impl::BinaryOperator<decltype("."_token),   LeftAssociative, 2>;
   using Postincrement    = Impl::UnaryOperator <decltype("++"_token),  LeftAssociative, 2>;
@@ -165,7 +165,7 @@ namespace Meter::AST {
   struct IfStatement { Expression condition; Impl::StmtRef taken, notTaken; };
   struct ForStatement { Expression init, cond, iter; Impl::StmtRef body; };
   struct ExpressionStatment { Expression expr; };
-  struct CompoundStatement { std::deque<Impl::StmtRef> stmts; };
+  struct CompoundStatement { std::deque<Statement> stmts; };
 
   namespace Impl {
     using StatementVar = std::variant<
@@ -180,5 +180,73 @@ namespace Meter::AST {
     using Impl::StatementVar::StatementVar;
   };
 
-  std::deque<Statement> makeAST(char const *&, std::ostream &os);
+  std::deque<Statement> makeAST(Tokens::ParserContext &ctx, std::ostream &os);
+
+  std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp);
+  template <typename Token, typename Assoc, int prec>
+  std::ostream &operator<<(std::ostream &os, Impl::BinaryOperator<Token, Assoc, prec> const &bop) {
+    os << '(' << *bop.lhs << Token::value << *bop.rhs << ')';
+    return os;
+  }
+
+  template<typename Token, typename Assoc, int prec>
+  std::ostream &operator<<(std::ostream &os, Impl::UnaryOperator<Token, Assoc, prec> const &uop) {
+    if constexpr (std::is_same_v<Assoc, LeftAssociative>) {
+      os << '(' << *uop.operand << Token::value << ')';
+    } else {
+      os << '(' << Token::value << *uop.operand << ')';
+    }
+    return os;
+  }
+
+  template<typename T>
+  void printExprs(std::ostream &os, T const &exprs) {
+    if(!std::distance(std::begin(exprs), std::end(exprs))) return;
+    std::copy(std::begin(exprs), std::end(exprs) - 1, std::ostream_iterator<typename T::value_type>(os, ","));
+    os << exprs.back();
+  }
+
+  inline std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp) {
+    std::visit(Overload{
+        [&](NoOp)               { os << "<NoOp>"; }
+      , [&](Ternary const &t)   { os << '(' << *t.cond << '?' << *t.taken << ':' << *t.notTaken << ')'; }
+      , [&](FCall const &f)     { os << *f.callee << '('; printExprs(os, f.arguments); os << ')'; }
+      , [&](Subscript const &s) { os << *s.callee << '['; printExprs(os, s.arguments); os << ']'; }
+      , [&](auto const &op)     { os << op; }
+
+      , [&](Tokens::Literal const &l)    { os << '"' << l.value << '"'; }
+      , [&](Tokens::Number const &n)     { os << n.value << 'i'; }
+      , [&](Tokens::Float const &n)      { os << n.value << 'f'; }
+      , [&](Tokens::Identifier const &n) { os << '<' << n.value << '>'; }
+    }, exp);
+    return os;
+  }
+
+  std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt);
+  template<typename T>
+  void printStmts(std::ostream &os, T const &stmts) {
+    std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os, ";"));
+  }
+
+  inline std::ostream &operator<<(std::ostream &os, IfStatement const &fi) {
+    os << "if (" << fi.condition << ") " << *fi.taken;
+    if(fi.notTaken) os << " else " << *fi.taken;
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, ForStatement const &fr) {
+    os << "for (" << fr.init << "; " << fr.cond << "; " << fr.iter << ") " << *fr.body;
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, ExpressionStatment const &fe) {
+    os << fe.expr << ';';
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, CompoundStatement const &fc) {
+    os << "{ "; printStmts(os, fc.stmts); os << " }";
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt) {
+    std::visit([&](auto const &stmt) { os << stmt; }, stmt);
+    return os;
+  }
 }
