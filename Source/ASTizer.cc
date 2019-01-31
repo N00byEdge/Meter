@@ -69,19 +69,8 @@ namespace {
   Meter::AST::Expression parseExpr(Meter::Tokens::ParserContext &ctx, int maxPrec) {
     using namespace Meter::Tokens::Literals;
     return std::visit(Meter::Overload{
-        [&](decltype(";"_token)) -> Meter::AST::Expression {
-          ctx.pop();
-          return Meter::AST::NoOp{};
-      }
-      , [&](decltype("("_token)) -> Meter::AST::Expression {
-          ctx.pop();
-          auto ret = parseExpr(ctx);
-          expectToken(")"_token, ctx);
-          return ret;
-      }
-      , [&](Meter::Tokens::EOF_T)    -> Meter::AST::Expression { BadParse bp{ "Unexpected end of file.\n" }; throw bp; }
-      // Prefix operators
-      , [&](decltype("++"_token)) -> Meter::AST::Expression { return handlePrefix<Meter::AST::Preincrement>(ctx); }
+        // Prefix operators
+        [&](decltype("++"_token)) -> Meter::AST::Expression { return handlePrefix<Meter::AST::Preincrement>(ctx); }
       , [&](decltype("--"_token)) -> Meter::AST::Expression { return handlePrefix<Meter::AST::Predecrement>(ctx); }
       , [&](decltype("+"_token))  -> Meter::AST::Expression { return handlePrefix<Meter::AST::UnaryPlus>   (ctx); }
       , [&](decltype("-"_token))  -> Meter::AST::Expression { return handlePrefix<Meter::AST::UnaryMinus>  (ctx); }
@@ -91,11 +80,17 @@ namespace {
       , [&](decltype("&"_token))  -> Meter::AST::Expression { return handlePrefix<Meter::AST::Addressof>   (ctx); }
       , [&](auto anythingElse)    -> Meter::AST::Expression {
         auto expr = std::visit(Meter::Overload{
-          // Non-operators
+            // Non-operators
             [&](Meter::Tokens::Identifier ident) { return Meter::AST::Expression{ident}; }
           , [&](Meter::Tokens::Number     num)   { return Meter::AST::Expression{num};   }
           , [&](Meter::Tokens::Literal    lit)   { return Meter::AST::Expression{lit};   }
           , [&](Meter::Tokens::Float      flt)   { return Meter::AST::Expression{flt};   }
+            // Parens
+          , [&](decltype("("_token)) -> Meter::AST::Expression {
+              auto ret = parseExpr(ctx); // Parse without precedence
+              expectToken(")"_token, ctx);
+              return ret;
+          }
           , [&](auto) -> Meter::AST::Expression  { BadParse bp{ "Expected primary expression.\n" }; throw bp; }
         }, ctx.consume());
         // Binary operators, postfix operators

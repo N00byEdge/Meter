@@ -109,12 +109,16 @@ namespace Meter::Tokens {
 
   inline std::string_view tokenName(Token const &tok) {
     return std::visit(Overload{
-        [&](auto op)          { return decltype(op)::value; }
-      , [&](Literal lit)      { return "literal";   }
-      , [&](Number num)       { return "number";    }
-      , [&](Float flt)        { return "float";     }
-      , [&](Identifier ident) { return "identifier"; }
+        [](auto op)          { return decltype(op)::value; }
+      , [](Literal lit)      { return "literal";   }
+      , [](Number num)       { return "number";    }
+      , [](Float flt)        { return "float";     }
+      , [](Identifier ident) { return "identifier"; }
     }, tok);
+  }
+
+  inline std::string_view tokenValue(Token const &tok) {
+    return std::visit([](auto op) -> std::string_view { return op.value; }, tok);
   }
 
   Meter::Tokens::Token consumeToken(char const *&s);
