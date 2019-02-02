@@ -255,7 +255,7 @@ namespace Meter::AST {
   std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt);
   template<typename T>
   void printStmts(std::ostream &os, T const &stmts) {
-    std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os, ";"));
+    std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os));
   }
 
   inline std::ostream &operator<<(std::ostream &os, IfStatement const &fi) {
