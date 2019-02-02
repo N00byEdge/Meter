@@ -92,6 +92,16 @@ namespace Meter::AST {
   using BitAndAssign     = Impl::BinaryOperator<decltype("&="_token),  RightAssociative, 16>;
   using BitXorAssign     = Impl::BinaryOperator<decltype("^="_token),  RightAssociative, 16>;
   using BitOrAssign      = Impl::BinaryOperator<decltype("|="_token),  RightAssociative, 16>;
+  struct Decl {
+    Impl::ExprRef type;
+    Tokens::Identifier ident;
+    std::deque<Expression> arguments;
+  };
+  struct FunctionDecl {
+    Impl::ExprRef retType;
+    Tokens::Identifier ident;
+    std::deque<Decl> parameters;
+  };
   struct NoOp            {
                            inline constexpr static auto prec = 0;
                            using trigger = decltype(";"_token);
@@ -148,6 +158,8 @@ namespace Meter::AST {
       , Tokens::Literal
       , Tokens::Number
       , Tokens::Float
+      , Decl
+      , FunctionDecl
       , NoOp
     >;
   }
@@ -166,6 +178,8 @@ namespace Meter::AST {
   struct ForStatement { Expression init, cond, iter; Impl::StmtRef body; };
   struct ExpressionStatment { Expression expr; };
   struct CompoundStatement { std::deque<Statement> stmts; };
+  struct StructDeclaration { Tokens::Identifier ident; Impl::StmtRef contents; };
+  struct DoWhile { Impl::StmtRef body; Expression cond; };
 
   namespace Impl {
     using StatementVar = std::variant<
@@ -173,6 +187,8 @@ namespace Meter::AST {
       , ForStatement
       , ExpressionStatment
       , CompoundStatement
+      , StructDeclaration
+      , DoWhile
     >;
   }
 
@@ -183,6 +199,13 @@ namespace Meter::AST {
   std::deque<Statement> makeAST(Tokens::ParserContext &ctx, std::ostream &os);
 
   std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp);
+  template<typename T>
+  void printExprs(std::ostream &os, T const &exprs) {
+    if(!std::distance(std::begin(exprs), std::end(exprs))) return;
+    std::copy(std::begin(exprs), std::end(exprs) - 1, std::ostream_iterator<typename T::value_type>(os, ","));
+    os << exprs.back();
+  }
+
   template <typename Token, typename Assoc, int prec>
   std::ostream &operator<<(std::ostream &os, Impl::BinaryOperator<Token, Assoc, prec> const &bop) {
     os << '(' << *bop.lhs << Token::value << *bop.rhs << ')';
@@ -199,11 +222,18 @@ namespace Meter::AST {
     return os;
   }
 
-  template<typename T>
-  void printExprs(std::ostream &os, T const &exprs) {
-    if(!std::distance(std::begin(exprs), std::end(exprs))) return;
-    std::copy(std::begin(exprs), std::end(exprs) - 1, std::ostream_iterator<typename T::value_type>(os, ","));
-    os << exprs.back();
+  inline std::ostream &operator<<(std::ostream &os, Decl const &decl) {
+    os << '[' << *decl.type << " <" << decl.ident.value << ">{";
+    printExprs(os, decl.arguments);
+    os << "}]";
+    return os;
+  }
+
+  inline std::ostream &operator<<(std::ostream &os, FunctionDecl const &decl) {
+    os << '[' << *decl.retType << " <" << decl.ident.value << ">(";
+    printExprs(os, decl.parameters);
+    os << ")]";
+    return os;
   }
 
   inline std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp) {
@@ -243,6 +273,14 @@ namespace Meter::AST {
   }
   inline std::ostream &operator<<(std::ostream &os, CompoundStatement const &fc) {
     os << "{ "; printStmts(os, fc.stmts); os << " }";
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, StructDeclaration const &str) {
+    os << "struct " << str.ident.value << " " << *str.contents;
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, DoWhile const &dw) {
+    os << "do " << *dw.body << " while (" << dw.cond << ");";
     return os;
   }
   inline std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt) {

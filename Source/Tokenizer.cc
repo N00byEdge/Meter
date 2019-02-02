@@ -218,6 +218,14 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
         num.value = std::string_view{s, len};
         return num;
       }
+      case 'd': {
+        if(s[1] == 'o') return "do"_token;
+        goto ident;
+      }
+      case 'e': {
+        if(s[1] == 'l' && s[2] == 's' && s[3] == 'e') return "else"_token;
+        goto ident;
+      }
       case 'f': {
         if(s[1] == 'o' && s[2] == 'r') return "for"_token;
         goto ident;
@@ -226,8 +234,9 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
         if(s[1] == 'f') return "if"_token;
         goto ident;
       }
-      case 'e': {
-        if(s[1] == 'l' && s[2] == 's' && s[3] == 'e') return "else"_token;
+      case 's': {
+        if(s[1] == 't' && s[2] == 'r' && s[3] == 'u' && s[4] == 'c' && s[5] == 't')
+          return "struct"_token;
         goto ident;
       }
       case 'w': {
