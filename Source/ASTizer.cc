@@ -142,7 +142,7 @@ namespace {
           expectToken(")"_token, ctx);
           return ret;
       }
-      , [&](auto) -> Meter::AST::Expression  { BadParse bp{ "Expected primary expression.\n" }; throw bp; }
+      , [&](auto) -> Meter::AST::Expression  { throw throwBadParse("Expected primary expression.\n"); }
     }, ctx.consume());
     // Binary operators, postfix operators
     for(bool exprEnd = false; !exprEnd;) {
