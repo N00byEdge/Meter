@@ -64,11 +64,18 @@ namespace {
     ctx.pop();
     FOp fop;
     fop.callee = std::make_unique<Meter::AST::Expression>(std::move(currExpr));
-    while(ctx.lookaheadMatch<0, typename FOp::end>({})) {
-      expectToken(","_token, ctx);
-      fop.arguments.emplace_back(parseExpr(ctx));
+
+    if(ctx.lookaheadMatch<0, typename FOp::end>({})) {
+      ctx.pop();
     }
-    ctx.pop();
+    else {
+      // Thanks Christian
+      do {
+        fop.arguments.emplace_back(parseExpr(ctx));
+      } while(ctx.lookaheadMatch(","_token) && (ctx.pop(), 1));
+      expectToken<typename FOp::end>({}, ctx);
+    }
+
     currExpr = std::move(fop);
   }
 
@@ -81,13 +88,19 @@ namespace {
         Meter::AST::FunctionDecl decl;
         decl.ident = std::move(ident);
         decl.retType = std::move(tp);
-        while(!ctx.lookaheadMatch(")"_token)) {
-          auto arg = parseExpr(ctx);
-          if (auto argg = std::get_if<Meter::AST::Decl>(&arg); argg) {
-            decl.parameters.emplace_back(std::move(*argg));
-          } else {
-            throwBadParse("Expected parameter declaration.\n");
-          }
+        if(ctx.lookaheadMatch(")"_token)) {
+          ctx.pop();
+        }
+        else {
+          do {
+            auto arg = parseExpr(ctx);
+            if (auto argg = std::get_if<Meter::AST::Decl>(&arg); argg) {
+              decl.parameters.emplace_back(std::move(*argg));
+            } else {
+              throwBadParse("Expected parameter declaration.\n");
+            }
+          } while(ctx.lookaheadMatch(","_token) && (ctx.pop(), 1));
+          expectToken(")"_token, ctx);
         }
         // Todo: things like const on member functions here
         return std::move(decl);
@@ -106,8 +119,15 @@ namespace {
         d.ident = std::move(ident);
         d.type = std::move(tp);
 
-        while(!ctx.lookaheadMatch("}"_token))
-          d.arguments.emplace_back(parseExpr(ctx));
+        if(ctx.lookaheadMatch("}"_token)) {
+          ctx.pop();
+        }
+        else {
+          do {
+            d.arguments.emplace_back(parseExpr(ctx));
+          } while(ctx.lookaheadMatch(","_token) && (ctx.pop(), 1));
+          expectToken("}"_token, ctx);
+        }
 
         return std::move(d);
       }
@@ -151,10 +171,11 @@ namespace {
           [&](decltype("++"_token)) { handlePostfix<Meter::AST::Postincrement>(ctx, expr); }
         , [&](decltype("--"_token)) { handlePostfix<Meter::AST::Postdecrement>(ctx, expr); }
           // Functionlike operators
-        , [&](decltype("["_token))  { handleFOp<Meter::AST::FCall>    (ctx, expr); }
-        , [&](decltype("("_token))  { handleFOp<Meter::AST::Subscript>(ctx, expr); }
+        , [&](decltype("["_token))  { handleFOp<Meter::AST::Subscript>(ctx, expr); }
+        , [&](decltype("("_token))  { handleFOp<Meter::AST::FCall>    (ctx, expr); }
           // Left assoc binary ops
         , [&](decltype("->"_token))  { handleBOp<Meter::AST::MemberDeref>   (ctx, maxPrec, exprEnd, expr); }
+        , [&](decltype("."_token))   { handleBOp<Meter::AST::MemberAccess>  (ctx, maxPrec, exprEnd, expr); }
         , [&](decltype("*"_token))   { handleBOp<Meter::AST::Multiplication>(ctx, maxPrec, exprEnd, expr); }
         , [&](decltype("/"_token))   { handleBOp<Meter::AST::Division>      (ctx, maxPrec, exprEnd, expr); }
         , [&](decltype("%"_token))   { handleBOp<Meter::AST::Modulus>       (ctx, maxPrec, exprEnd, expr); }
@@ -260,6 +281,13 @@ namespace {
         expectToken(")"_token, ctx);
         expectToken(";"_token, ctx);
         return Meter::AST::Statement{std::move(dw)};
+      }
+      , [&](decltype("return"_token)) -> Meter::AST::Statement {
+        ctx.pop();
+        Meter::AST::ReturnStatement ret;
+        ret.expr = parseExpr(ctx);
+        expectToken(";"_token, ctx);
+        return Meter::AST::Statement{std::move(ret)};
       }
       , [&](decltype("{"_token)) -> Meter::AST::Statement {
         ctx.pop();

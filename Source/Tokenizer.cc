@@ -234,6 +234,11 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
         if(s[1] == 'f') return "if"_token;
         goto ident;
       }
+      case 'r': {
+        if(s[1] == 'e' && s[2] == 't' && s[3] == 'u' && s[4] == 'r' && s[5] == 'n')
+          return "return"_token;
+        goto ident;
+      }
       case 's': {
         if(s[1] == 't' && s[2] == 'r' && s[3] == 'u' && s[4] == 'c' && s[5] == 't')
           return "struct"_token;

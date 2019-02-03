@@ -180,6 +180,7 @@ namespace Meter::AST {
   struct CompoundStatement { std::deque<Statement> stmts; };
   struct StructDeclaration { Tokens::Identifier ident; Impl::StmtRef contents; };
   struct DoWhile { Impl::StmtRef body; Expression cond; };
+  struct ReturnStatement { Expression expr; };
 
   namespace Impl {
     using StatementVar = std::variant<
@@ -189,6 +190,7 @@ namespace Meter::AST {
       , CompoundStatement
       , StructDeclaration
       , DoWhile
+      , ReturnStatement
     >;
   }
 
@@ -281,6 +283,10 @@ namespace Meter::AST {
   }
   inline std::ostream &operator<<(std::ostream &os, DoWhile const &dw) {
     os << "do " << *dw.body << " while (" << dw.cond << ");";
+    return os;
+  }
+  inline std::ostream &operator<<(std::ostream &os, ReturnStatement const &ret) {
+    os << "return " << ret.expr << ';';
     return os;
   }
   inline std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt) {

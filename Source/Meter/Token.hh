@@ -107,6 +107,7 @@ namespace Meter::Tokens {
     , "while"_token
     , "struct"_token
     , "do"_token
+    , "return"_token
   ));
 
   inline std::string_view tokenName(Token const &tok) {
