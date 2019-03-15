@@ -7,11 +7,14 @@
 #include <iterator>
 
 namespace Meter::AST {
-  class Expression;
+  struct Expression;
+  struct Statement;
+  
   struct LeftAssociative;
   struct RightAssociative;
   namespace Impl {
     using ExprRef = std::unique_ptr<Expression>;
+    using StmtRef = std::unique_ptr<Statement>;
 
     template<typename TriggerToken, typename Associativity, int precedence>
     struct BinaryOperator {
@@ -101,6 +104,7 @@ namespace Meter::AST {
     Impl::ExprRef retType;
     Tokens::Identifier ident;
     std::deque<Decl> parameters;
+    Impl::StmtRef funcBody;
   };
   struct NoOp            {
                            inline constexpr static auto prec = 0;
@@ -168,12 +172,6 @@ namespace Meter::AST {
     using Impl::ExpressionVar::ExpressionVar;
   };
 
-  struct Statement;
-
-  namespace Impl {
-    using StmtRef = std::unique_ptr<Statement>;
-  }
-
   struct IfStatement { Expression condition; Impl::StmtRef taken, notTaken; };
   struct ForStatement { Expression init, cond, iter; Impl::StmtRef body; };
   struct ExpressionStatment { Expression expr; };
@@ -201,6 +199,7 @@ namespace Meter::AST {
   std::deque<Statement> makeAST(Tokens::ParserContext &ctx, std::ostream &os);
 
   std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp);
+  std::ostream &operator<<(std::ostream &os, Impl::StatementVar  const &stmt);
   template<typename T>
   void printExprs(std::ostream &os, T const &exprs) {
     if(!std::distance(std::begin(exprs), std::end(exprs))) return;
@@ -235,6 +234,8 @@ namespace Meter::AST {
     os << '[' << *decl.retType << " <" << decl.ident.value << ">(";
     printExprs(os, decl.parameters);
     os << ")]";
+    if(decl.funcBody)
+      os << *decl.funcBody;
     return os;
   }
 
@@ -254,7 +255,6 @@ namespace Meter::AST {
     return os;
   }
 
-  std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt);
   template<typename T>
   void printStmts(std::ostream &os, T const &stmts) {
     std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os));

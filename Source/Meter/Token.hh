@@ -108,6 +108,7 @@ namespace Meter::Tokens {
     , "struct"_token
     , "do"_token
     , "return"_token
+    , "=>"_token
   ));
 
   inline std::string_view tokenName(Token const &tok) {
@@ -149,8 +150,17 @@ namespace Meter::Tokens {
     }
 
     template<int numAhead = 0, typename TokenT>
-    [[nodiscard]] bool lookaheadMatch(TokenT) {
+    [[nodiscard]] bool lookaheadMatch(TokenT = TokenT{}) {
       return std::holds_alternative<TokenT>(lookahead<numAhead>());
+    }
+
+    template<typename TokenT>
+    bool tryPop(TokenT = TokenT{}) {
+      if(lookaheadMatch<0, TokenT>()) {
+        pop();
+        return true;
+      }
+      return false;
     }
 
     void pop() {

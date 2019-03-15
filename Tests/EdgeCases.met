@@ -3,3 +3,7 @@ a-------->0;
 a--------->0;
 ++a--;
 a=a=a=b;
+a++b(auto a = 5, auto sju = 8, auto fem = 5);
+=> f(e, m);
+int a(int a = 5, int sju, int _) => f(e, m);
+int returnr;

@@ -104,8 +104,11 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
         return "^"_token;
       }
       case '=': {
-        if(s[1] == '=') return "=="_token;
-        return "="_token;
+        switch(s[1]) {
+          case '=': return "=="_token;
+          case '>': return "=>"_token;
+          default:  return "="_token;
+        }
       }
       case '!': {
         if(s[1] == '=') return "!="_token;
@@ -219,33 +222,33 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
         return num;
       }
       case 'd': {
-        if(s[1] == 'o') return "do"_token;
+        if(s[1] == 'o' && !consumeIdentifierChar(s[2])) return "do"_token;
         goto ident;
       }
       case 'e': {
-        if(s[1] == 'l' && s[2] == 's' && s[3] == 'e') return "else"_token;
+        if(s[1] == 'l' && s[2] == 's' && s[3] == 'e' && !consumeIdentifierChar(s[4])) return "else"_token;
         goto ident;
       }
       case 'f': {
-        if(s[1] == 'o' && s[2] == 'r') return "for"_token;
+        if(s[1] == 'o' && s[2] == 'r' && !consumeIdentifierChar(s[3])) return "for"_token;
         goto ident;
       }
       case 'i': {
-        if(s[1] == 'f') return "if"_token;
+        if(s[1] == 'f' && !consumeIdentifierChar(s[2])) return "if"_token;
         goto ident;
       }
       case 'r': {
-        if(s[1] == 'e' && s[2] == 't' && s[3] == 'u' && s[4] == 'r' && s[5] == 'n')
+        if(s[1] == 'e' && s[2] == 't' && s[3] == 'u' && s[4] == 'r' && s[5] == 'n' && !consumeIdentifierChar(s[6]))
           return "return"_token;
         goto ident;
       }
       case 's': {
-        if(s[1] == 't' && s[2] == 'r' && s[3] == 'u' && s[4] == 'c' && s[5] == 't')
+        if(s[1] == 't' && s[2] == 'r' && s[3] == 'u' && s[4] == 'c' && s[5] == 't' && !consumeIdentifierChar(s[6]))
           return "struct"_token;
         goto ident;
       }
       case 'w': {
-        if(s[1] == 'h' && s[2] == 'i' && s[3] == 'l' && s[4] == 'e')
+        if(s[1] == 'h' && s[2] == 'i' && s[3] == 'l' && s[4] == 'e' && !consumeIdentifierChar(s[5]))
           return "while"_token;
         goto ident;
       }
