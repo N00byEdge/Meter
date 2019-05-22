@@ -12,6 +12,15 @@ addons:
     packages:
       - g++-7
 
+#script:
+#  - make
+#  - build/lexer
+
 script:
-  - make
-  - build/lexer
+  - mkdir build
+  - pushd build
+  - CC=gcc-7 CXX=g++-7 cmake ..
+  - make VERBOSE=1
+  # Todo: export these test results
+  - ASAN_OPTIONS=detect_leaks=0 ./tests --gtest_output=xml:"tests.xml"
+  - popd
