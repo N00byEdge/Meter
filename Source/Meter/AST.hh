@@ -7,6 +7,7 @@
 #include <iterator>
 
 namespace Meter::AST {
+  using Identifier = Tokens::Identifier;
   struct Expression;
   struct Statement;
   
@@ -97,12 +98,12 @@ namespace Meter::AST {
   using BitOrAssign      = Impl::BinaryOperator<decltype("|="_token),  RightAssociative, 16>;
   struct Decl {
     Impl::ExprRef type;
-    Tokens::Identifier ident;
+    Identifier ident;
     std::deque<Expression> arguments;
   };
   struct FunctionDecl {
     Impl::ExprRef retType;
-    Tokens::Identifier ident;
+    Identifier ident;
     std::deque<Decl> parameters;
     Impl::StmtRef funcBody;
   };
@@ -111,6 +112,9 @@ namespace Meter::AST {
                            using trigger = decltype(";"_token);
                          };
 
+  struct CompoundStatement { std::deque<Statement> stmts; };
+  struct ASTExpr: CompoundStatement { };
+  
   namespace Impl {
     using ExpressionVar = std::variant<
         MemberAccess
@@ -158,13 +162,14 @@ namespace Meter::AST {
       , BitAndAssign
       , BitXorAssign
       , BitOrAssign
-      , Tokens::Identifier
+      , Identifier
       , Tokens::Literal
       , Tokens::Number
       , Tokens::Float
       , Decl
       , FunctionDecl
       , NoOp
+      , ASTExpr
     >;
   }
 
@@ -175,8 +180,7 @@ namespace Meter::AST {
   struct IfStatement { Expression condition; Impl::StmtRef taken, notTaken; };
   struct ForStatement { Expression init, cond, iter; Impl::StmtRef body; };
   struct ExpressionStatment { Expression expr; };
-  struct CompoundStatement { std::deque<Statement> stmts; };
-  struct StructDeclaration { Tokens::Identifier ident; Impl::StmtRef contents; };
+  struct StructDeclaration { Identifier ident; Impl::StmtRef contents; };
   struct DoWhile { Impl::StmtRef body; Expression cond; };
   struct ReturnStatement { Expression expr; };
 
@@ -196,15 +200,22 @@ namespace Meter::AST {
     using Impl::StatementVar::StatementVar;
   };
 
-  std::deque<Statement> makeAST(Tokens::ParserContext &ctx, std::ostream &os);
+  using Statements = std::deque<Statement>;
+  Statements makeAST(Tokens::ParserContext &ctx, std::ostream &os);
 
   std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp);
   std::ostream &operator<<(std::ostream &os, Impl::StatementVar  const &stmt);
+
   template<typename T>
   void printExprs(std::ostream &os, T const &exprs) {
     if(!std::distance(std::begin(exprs), std::end(exprs))) return;
     std::copy(std::begin(exprs), std::end(exprs) - 1, std::ostream_iterator<typename T::value_type>(os, ","));
     os << exprs.back();
+  }
+
+  template<typename T>
+  void printStmts(std::ostream &os, T const &stmts) {
+    std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os));
   }
 
   template <typename Token, typename Assoc, int prec>
@@ -245,6 +256,7 @@ namespace Meter::AST {
       , [&](Ternary const &t)   { os << '(' << *t.cond << '?' << *t.taken << ':' << *t.notTaken << ')'; }
       , [&](FCall const &f)     { os << *f.callee << '('; printExprs(os, f.arguments); os << ')'; }
       , [&](Subscript const &s) { os << *s.callee << '['; printExprs(os, s.arguments); os << ']'; }
+      , [&](ASTExpr const &s)   { os << "%{"; printStmts(os, s.stmts); os << "}"; }
       , [&](auto const &op)     { os << op; }
 
       , [&](Tokens::Literal const &l)    { os << '"' << l.value << '"'; }
@@ -254,15 +266,11 @@ namespace Meter::AST {
     }, exp);
     return os;
   }
-
-  template<typename T>
-  void printStmts(std::ostream &os, T const &stmts) {
-    std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os));
-  }
+  
 
   inline std::ostream &operator<<(std::ostream &os, IfStatement const &fi) {
     os << "if (" << fi.condition << ") " << *fi.taken;
-    if(fi.notTaken) os << " else " << *fi.taken;
+    if(fi.notTaken) os << " else " << *fi.notTaken;
     return os;
   }
   inline std::ostream &operator<<(std::ostream &os, ForStatement const &fr) {

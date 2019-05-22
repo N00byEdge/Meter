@@ -1,14 +1,22 @@
 .PHONY: all;
 all: build/lexer;
 
-build/lexer.d/:
-	mkdir -p build/lexer.d/
+_OBJECTS =                                \
+					 ASTizer                        \
+           Codegenizer                    \
+					 main                           \
+					 Meterializer                   \
+					 Tokenizer                      \
+					 Unicode                        \
 
-build/lexer.d/%.o: Source/%.cc Source/Meter/*.hh build/lexer.d/ Makefile;
+OBJECTS = $(patsubst %,build/lexer.d/%.o,$(_OBJECTS))
+
+build/lexer.d/%.o: Source/%.cc;
+	mkdir -p build/lexer.d/
 	g++-7 -std=gnu++17 -c $< -ISource/ -o $@ -Wall -Os
 
-build/lexer: build/lexer.d/main.o build/lexer.d/Tokenizer.o build/lexer.d/ASTizer.o;
+build/lexer: $(OBJECTS);
 	g++-7 -std=gnu++17 $^ -o $@ -Wall -Os
 
 clean:
-	rm -rf build/
+	rm -rfv build/lexer.d/*.o

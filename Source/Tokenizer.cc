@@ -1,6 +1,7 @@
 #include "Meter/Token.hh"
 
 #include <array>
+#include <cctype>
 
 // That I have to do this is why I'm making this to begin with
 // #define gen(arg) case arg: return next(arg);
@@ -169,15 +170,18 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
         return "*"_token;
       }
       case '%': {
-        if(s[1] == '=') return "%="_token;
-        return "%"_token;
+        switch(s[1]) {
+          case '=': return "%="_token;
+          case '{': return "%{"_token;
+          default: return "%"_token;
+        }
       }
       case '.': {
         switch(s[1]) {
           /*
           case '0': case '1': case '2': case '3': case '4':
-          case '5': case '6': case '7': case '8': case '9':*/
-            goto parsenum;
+          case '5': case '6': case '7': case '8': case '9':
+            goto parsenum;*/
           default:
             return "."_token;
         }
@@ -213,7 +217,7 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(char const *&s) {
       }
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9': { // It's some kind of number
-        parsenum:
+        //parsenum:
         Tokens::Number num{};
         auto len = 1ull;
         for(; '0' <= s[len] && s[len] <= '9'; ++len);

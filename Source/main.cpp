@@ -1,4 +1,5 @@
 #include "Meter/AST.hh"
+#include "Meter/Language.hh"
 
 #include <fstream>
 
@@ -13,6 +14,8 @@ std::string loadFile(T &&v) {
 
 template<typename T>
 void test(T &&v) {
+  Meter::Language::Scope sc;
+
   auto s = loadFile(v);
   Meter::Tokens::ParserContext ctx{s.c_str()};
   while(1) {

@@ -32,7 +32,9 @@ namespace Meter::Tokens {
   }
 
   struct Literal:    Impl::VarLenToken<std::string_view, Literal>{};
-  struct Identifier: Impl::VarLenToken<std::string_view, Identifier>{};
+  struct Identifier: Impl::VarLenToken<std::string_view, Identifier>{
+    bool operator<(Identifier const &other) const { return std::string_view{value} < other.value; }
+  };
   struct Number:     Impl::VarLenToken<std::string_view, Number>{};
   struct Float:      Impl::VarLenToken<std::string_view, Float>{};
 
@@ -48,6 +50,7 @@ namespace Meter::Tokens {
   }
 
   namespace Literals {
+    // GCC only, goal is for the language we're making to not need this :^)
     template<typename T, T... chars>
     constexpr Impl::tok_<chars...> operator""_token() { return {}; }
   }
@@ -95,6 +98,7 @@ namespace Meter::Tokens {
     , "/="_token
     , "*="_token
     , "%="_token
+    , "%{"_token
     , "<<="_token
     , ">>="_token
     , "&="_token
