@@ -6,7 +6,7 @@ namespace Meter::Unicode {
   }
 
   constexpr bool isContinuation(std::uint8_t val) {
-    return (val & utf8::contMask) == 0b1000'000;
+    return (val & utf8::contMask) == 0b1000'0000;
   }
 
   namespace Strict {
