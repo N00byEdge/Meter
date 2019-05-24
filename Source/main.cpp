@@ -1,14 +1,8 @@
 #include "Meter/AST.hh"
 #include "Meter/Language.hh"
+#include "Meter/Files.hh"
 
 #include <fstream>
-
-template<typename T>
-std::string loadFile(T &&v) {
-  std::ifstream is{v};
-  std::string s{std::istreambuf_iterator<char>{is}, {}};
-  return s;
-}
 
 #include <iostream>
 

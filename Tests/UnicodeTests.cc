@@ -157,3 +157,41 @@ TEST(UnicodeStrict, BadEncodings) {
     }
   }
 }
+
+namespace {
+  char const *u8TestFiles[] {
+    "../Tests/EdgeCases.met",
+    "../Tests/Maffs.met",
+    "../Tests/Struct.met",
+    "../Tests/Unicode.met",
+  };
+}
+
+#include "Meter/Files.hh"
+
+TEST(UnicodeStrict, DecodeTestFiles) {
+  for(auto &f: u8TestFiles) {
+    auto data8 = Meter::Files::loadFile(f);
+    auto dview = Unicode::view8{data8};
+    auto [cps, errit, endit, err] = Strict::toCodePoints(dview);
+    EXPECT_EQ(dview.end(), errit);
+    EXPECT_EQ(dview.end(), endit);
+    EXPECT_FALSE(err.has_value());
+    bool failed = dview.end() != errit || dview.end() != endit || err.has_value();
+    if(failed) {
+      std::cerr << "Parsing failed:\n";
+      auto errorLineStart =
+        std::find(std::make_reverse_iterator(endit), std::make_reverse_iterator(dview.begin()), static_cast<Unicode::chr8>('\n'));
+      for(auto it = errorLineStart.base(); it != endit; ++it)
+        std::cerr << *it;
+      std::cerr << "\033[;31m";
+      auto hex = [](int val) -> char {
+        return "0123456789abcdef"[val];
+      };
+      for(auto it = endit; it != errit + 1; ++it) {
+        std::cerr << "\\0x" << hex(*it >> 4) << hex(*it & 0x0f);
+      }
+      std::cerr << "\033[;0m\nError: " << Strict::errorName(err.value()) << '\n';
+    }
+  }
+}

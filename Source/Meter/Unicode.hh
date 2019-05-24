@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <string_view>
 #include <cstdint>
@@ -28,6 +30,15 @@ namespace Meter::Unicode {
       InvalidStart,
       OutOfBounds,
     };
+
+    inline char const *errorName(ConversionError err) {
+      switch(err) {
+        case ConversionError::InvalidContinuation: return "Invalid continuation";
+        case ConversionError::InvalidStart:        return "Invalid starting value";
+        case ConversionError::OutOfBounds:         return "Out of bounds value";
+        default:                                   return "Unknown error";
+      }
+    }
 
     template<typename inputView, typename outputStr>
     struct ConversionResult {

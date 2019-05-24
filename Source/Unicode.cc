@@ -31,7 +31,7 @@ namespace Meter::Unicode {
               break;
 
             // 1110'xxxx (1110'x000 masked)
-            case 0xe0: case 0xe1: // 3 byte length
+            case 0xe0: case 0xe8: // 3 byte length
               latestTrailingBytes = trailingRemaining = 2;
               break;
 
