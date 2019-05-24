@@ -2,11 +2,11 @@
 
 namespace Meter::Unicode {
   namespace utf8 {
-    constexpr std::uint8_t contMask = 0xc0;
+    constexpr std::uint8_t contMask = 0b1100'0000;
   }
 
   constexpr bool isContinuation(std::uint8_t val) {
-    return (val & utf8::contMask) == 0x80;
+    return (val & utf8::contMask) == 0b1000'000;
   }
 
   namespace Strict {
@@ -22,22 +22,22 @@ namespace Meter::Unicode {
         auto val = *it;
         switch(trailingRemaining) {
         case 0: // No remaining trailing bytes
-          if(val & 0x80) {
+          if(val & 0b1000'0000) {
             // Start of new sequence, check sequence length
             // Mask xxxx x000
             switch(val & 0xf8) {
             // 110x'xxxx (110x'x000 masked)
-            case 0xc0: case 0xd0: case 0xc8: case 0xd8: // 2 byte length
+            case 0b1100'0000: case 0b1100'1000: case 0b1101'0000: case 0b1101'1000: // 2 byte length
               latestTrailingBytes = trailingRemaining = 1;
               break;
 
             // 1110'xxxx (1110'x000 masked)
-            case 0xe0: case 0xe8: // 3 byte length
+            case 0b1110'0000: case 0b1110'1000: // 3 byte length
               latestTrailingBytes = trailingRemaining = 2;
               break;
 
             // 1111'0xxx (1111'0000 masked)
-            case 0xf0: // 4 byte length
+            case 0b1111'0000: // 4 byte length
               latestTrailingBytes = trailingRemaining = 3;
               break;
 
@@ -60,16 +60,16 @@ namespace Meter::Unicode {
             chr32 outValue;
             switch(latestTrailingBytes) {
             case 1: outValue = (static_cast<chr32>(*(it-0) & ~utf8::contMask) <<  0)
-                             + (static_cast<chr32>(*(it-1) & 0x1f)            <<  6)
+                             + (static_cast<chr32>(*(it-1) & 0b0001'1111)     <<  6)
               ;break;
             case 2: outValue = (static_cast<chr32>(*(it-0) & ~utf8::contMask) <<  0)
                              + (static_cast<chr32>(*(it-1) & ~utf8::contMask) <<  6)
-                             + (static_cast<chr32>(*(it-2) & 0x0f)            << 12)
+                             + (static_cast<chr32>(*(it-2) & 0b0000'1111)     << 12)
               ;break;
             case 3: outValue = (static_cast<chr32>(*(it-0) & ~utf8::contMask) <<  0)
                              + (static_cast<chr32>(*(it-1) & ~utf8::contMask) <<  6)
                              + (static_cast<chr32>(*(it-2) & ~utf8::contMask) << 12)
-                             + (static_cast<chr32>(*(it-3) & 0x07)            << 18)
+                             + (static_cast<chr32>(*(it-3) & 0b0000'0111)     << 18)
               ;break;
             }
             if(outValue > 0x1ffff) return { std::move(result), it, anchor, ConversionError::OutOfBounds };
@@ -82,7 +82,7 @@ namespace Meter::Unicode {
           break;
         }
       }
-      return { std::move(result), bytes.end(), anchor, std::nullopt };
+      return { std::move(result), it, anchor, std::nullopt };
     }
 
     ConversionResult<view32, str8> toUTF8(view32 codepoints) {
