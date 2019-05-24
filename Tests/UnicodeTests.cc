@@ -76,6 +76,13 @@ namespace {
   Unicode::view8 const InvalidContinuation4_2 { reinterpret_cast<Unicode::chr8 const*>("\xf0\x20") };
   Unicode::view8 const InvalidContinuation4_3 { reinterpret_cast<Unicode::chr8 const*>("\xf0\x80\x20") };
   Unicode::view8 const InvalidContinuation4_4 { reinterpret_cast<Unicode::chr8 const*>("\xf0\x80\x80\x20") };
+  Unicode::view8 const NeedMoreData2_1        { reinterpret_cast<Unicode::chr8 const*>("\xc2") };
+  Unicode::view8 const NeedMoreData3_1        { reinterpret_cast<Unicode::chr8 const*>("\xe8") };
+  Unicode::view8 const NeedMoreData3_2        { reinterpret_cast<Unicode::chr8 const*>("\xe8\x80") };
+  Unicode::view8 const NeedMoreData4_1        { reinterpret_cast<Unicode::chr8 const*>("\xf0") };
+  Unicode::view8 const NeedMoreData4_2        { reinterpret_cast<Unicode::chr8 const*>("\xf0\x80") };
+  Unicode::view8 const NeedMoreData4_3        { reinterpret_cast<Unicode::chr8 const*>("\xf0\x80\x80") };
+  
 
   std::pair<Unicode::view8, Strict::ConversionResult<Unicode::view8, Unicode::str32>> const expectedResults8toCP[] {
     { StartsWithContinuation8,
@@ -140,6 +147,54 @@ namespace {
         InvalidContinuation4_4.begin() + 3,
         InvalidContinuation4_4.begin(),
         Strict::ConversionError::InvalidContinuation,
+      }
+    },
+    { NeedMoreData2_1,
+      {
+        reinterpret_cast<Unicode::chr32 const *>(U""),
+        NeedMoreData2_1.end(),
+        NeedMoreData2_1.begin(),
+        std::nullopt,
+      }
+    },
+    { NeedMoreData3_1,
+      {
+        reinterpret_cast<Unicode::chr32 const *>(U""),
+        NeedMoreData3_1.end(),
+        NeedMoreData3_1.begin(),
+        std::nullopt,
+      }
+    },
+    { NeedMoreData3_2,
+      {
+        reinterpret_cast<Unicode::chr32 const *>(U""),
+        NeedMoreData3_2.end(),
+        NeedMoreData3_2.begin(),
+        std::nullopt,
+      }
+    },
+    { NeedMoreData4_1,
+      {
+        reinterpret_cast<Unicode::chr32 const *>(U""),
+        NeedMoreData4_1.end(),
+        NeedMoreData4_1.begin(),
+        std::nullopt,
+      }
+    },
+    { NeedMoreData4_2,
+      {
+        reinterpret_cast<Unicode::chr32 const *>(U""),
+        NeedMoreData4_2.end(),
+        NeedMoreData4_2.begin(),
+        std::nullopt,
+      }
+    },
+    { NeedMoreData4_3,
+      {
+        reinterpret_cast<Unicode::chr32 const *>(U""),
+        NeedMoreData4_3.end(),
+        NeedMoreData4_3.begin(),
+        std::nullopt,
       }
     },
   };

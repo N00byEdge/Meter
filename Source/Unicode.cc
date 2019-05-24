@@ -16,11 +16,12 @@ namespace Meter::Unicode {
 
       int latestTrailingBytes = 0;
       int trailingRemaining = 0;
-      for(auto it = bytes.begin(), anchor = it; it != bytes.end(); ++ it) {
+      
+      auto it = bytes.begin(), anchor = it; 
+      for(;it != bytes.end(); ++ it) {
         auto val = *it;
         switch(trailingRemaining) {
         case 0: // No remaining trailing bytes
-          anchor = it;
           if(val & 0x80) {
             // Start of new sequence, check sequence length
             // Mask xxxx x000
@@ -45,8 +46,10 @@ namespace Meter::Unicode {
               break;
             }
           }
-          else // ASCII, just put in output
+          else { // ASCII, just put in output
             result += val;
+            anchor = (it + 1);
+          }
           break;
         case 2: case 3: // Do continuation check but don't finalize multibyte sequence
           if(isContinuation(val)) --trailingRemaining;
@@ -73,12 +76,13 @@ namespace Meter::Unicode {
             else {
               result += outValue;
               trailingRemaining = 0;
+              anchor = it + 1;
             }
           } else return { std::move(result), it, anchor, ConversionError::InvalidContinuation };
           break;
         }
       }
-      return { std::move(result), bytes.end(), bytes.end(), std::nullopt };
+      return { std::move(result), bytes.end(), anchor, std::nullopt };
     }
 
     ConversionResult<view32, str8> toUTF8(view32 codepoints) {
