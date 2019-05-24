@@ -27,12 +27,16 @@ namespace Meter::Unicode {
             // Mask xxxx x000
             switch(val & 0b1111'1000) {
             // 110x'xxxx (110x'x000 masked)
-            case 0b1100'0000: case 0b1100'1000: case 0b1101'0000: case 0b1101'1000: // 2 byte length
+            case 0b1100'0000:
+            case 0b1100'1000:
+            case 0b1101'0000:
+            case 0b1101'1000: // 2 byte length
               latestTrailingBytes = trailingRemaining = 1;
               break;
 
             // 1110'xxxx (1110'x000 masked)
-            case 0b1110'0000: case 0b1110'1000: // 3 byte length
+            case 0b1110'0000:
+            case 0b1110'1000: // 3 byte length
               latestTrailingBytes = trailingRemaining = 2;
               break;
 
