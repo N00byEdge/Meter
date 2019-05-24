@@ -239,14 +239,14 @@ TEST(UnicodeStrict, DecodeTestFiles) {
         std::find(std::make_reverse_iterator(endit), std::make_reverse_iterator(dview.begin()), static_cast<Unicode::chr8>('\n'));
       for(auto it = errorLineStart.base(); it != endit; ++it)
         std::cerr << *it;
-      std::cerr << "\033[;31m";
       auto hex = [](int val) -> char {
         return "0123456789abcdef"[val];
       };
-      for(auto it = endit; it != errit + 1; ++it) {
+      for(auto it = endit; it != errit; ++it)
         std::cerr << "\\0x" << hex(*it >> 4) << hex(*it & 0x0f);
-      }
-      std::cerr << "\033[;0m\nError: " << Strict::errorName(err.value()) << '\n';
+      
+      std::cerr << "\033[;31m\\0x" << hex(*errit >> 4) << hex(*errit & 0x0f)
+                << "\033[;0m\nError: " << Strict::errorName(err.value()) << '\n';
     }
   }
 }
