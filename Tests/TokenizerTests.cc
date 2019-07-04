@@ -10,7 +10,6 @@ auto tokenizeString(std::string_view input,
   Meter::Tokens::TokenizerContext context;
   context.view = input;
   auto contextBackup = context;
-  std::cout << "Testing string " << input << "\n";
   for(auto it = expectedTokens.begin(); it != expectedTokens.end(); ++ it, contextBackup = context) {
     if(it->index() != Meter::Tokens::consumeToken(context).index()) {
       ADD_FAILURE();
