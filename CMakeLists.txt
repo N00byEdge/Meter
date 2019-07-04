@@ -41,7 +41,7 @@ add_library(googletest
 add_custom_command(
   OUTPUT ${PROJECT_SOURCE_DIR}/Source/Tokenizer.cc
   DEPENDS ${PROJECT_SOURCE_DIR}/Source/Tokenizer.re
-  COMMAND re2c --input custom -o "Tokenizer.cc" Tokenizer.re
+  COMMAND re2c -8 --input custom -o "Tokenizer.cc" Tokenizer.re
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/Source"
 )
 

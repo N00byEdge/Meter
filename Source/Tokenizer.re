@@ -37,7 +37,6 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext
 /*!re2c
   re2c:yyfill:enable = 0;
   re2c:define:YYCTYPE = chr;
-  re2c:flags:utf-8 = 1;
 
   "\x00"                       {                      return true;       }
   "\r\n"|[\r\n]                { context.rows();      return self(self); }
@@ -53,7 +52,6 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext
 /*!re2c
   re2c:yyfill:enable = 0;
   re2c:define:YYCTYPE = chr;
-  re2c:flags:utf-8 = 1;
   nonascii = [\u0080-\uffff];
   identstart = [a-zA-Z_$#@] | nonascii;
   identchar = identstart | [0-9];
