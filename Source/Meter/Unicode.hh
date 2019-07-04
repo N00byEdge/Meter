@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string>
 #include <string_view>
 #include <cstdint>
@@ -23,6 +24,16 @@ namespace Meter::Unicode {
   using str8   = str<chr8>;
   using str16  = str<chr16>;
   using str32  = str<chr32>;
+
+  template<int sz>
+  constexpr std::array<chr8, sz> signify(std::int8_t (&arr)[sz]) {
+    return { std::begin(arr), std::end(arr) };
+  }
+
+  template<int sz>
+  constexpr std::array<chr32, sz> signify(std::int32_t (&arr)[sz]) {
+    return { std::begin(arr), std::end(arr) };
+  }
 
   namespace Strict {
     enum class ConversionError {

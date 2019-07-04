@@ -1,1 +1,5 @@
 build/*
+.vscode/*
+.gdb_history
+Source/Tokenizer.cc
+make/*

@@ -201,7 +201,6 @@ namespace Meter::AST {
   };
 
   using Statements = std::deque<Statement>;
-  Statements makeAST(Tokens::ParserContext &ctx, std::ostream &os);
 
   std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp);
   std::ostream &operator<<(std::ostream &os, Impl::StatementVar  const &stmt);
@@ -266,7 +265,6 @@ namespace Meter::AST {
     }, exp);
     return os;
   }
-  
 
   inline std::ostream &operator<<(std::ostream &os, IfStatement const &fi) {
     os << "if (" << fi.condition << ") " << *fi.taken;

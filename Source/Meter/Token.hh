@@ -7,11 +7,14 @@
 #include <queue>
 
 namespace Meter::Tokens {
-  struct TokenContext { int line; int column; };
+  struct TokenContext {
+    std::string_view view;
+    int lineStart, columnStart, columnEnd;
+  };
 
-  struct EOF_T{
+  struct EOF_T {
     inline static constexpr std::intptr_t length = 0;
-    inline static constexpr char value[] = "[END OF FILE]";
+    inline static constexpr char const value[] = "[END OF FILE]";
     TokenContext context;
   };
   inline EOF_T EndOfFile;
@@ -41,11 +44,11 @@ namespace Meter::Tokens {
   namespace Impl {
     template<typename ...Ts>
     std::variant<
-        Literal
+        EOF_T
+      , Literal
       , Identifier
       , Number
       , Float
-      , EOF_T
       , Ts ...> makeTokens(Ts ...);
   }
 
@@ -112,6 +115,9 @@ namespace Meter::Tokens {
     , "struct"_token
     , "do"_token
     , "return"_token
+    , "scope_exit"_token
+    , "scope_fail"_token
+    , "scope_success"_token
     , "=>"_token
   ));
 
@@ -128,54 +134,4 @@ namespace Meter::Tokens {
   inline std::string_view tokenValue(Token const &tok) {
     return std::visit([](auto op) -> std::string_view { return op.value; }, tok);
   }
-
-  Meter::Tokens::Token consumeToken(char const *&s);
-
-  struct ParserContext {
-    char const *file;
-    std::deque<Meter::Tokens::Token> tokenQueue;
-
-    template<int idx = 0>
-    void ensureQueued() {
-      while(tokenQueue.size() <= idx) {
-        if (!file)
-          tokenQueue.push_back(Meter::Tokens::EndOfFile);
-
-        tokenQueue.emplace_back(Meter::Tokens::consumeToken(file));
-        if(std::holds_alternative<Meter::Tokens::EOF_T>(tokenQueue.back()))
-          file = nullptr;
-      }
-    }
-
-    template<int numAhead = 0>
-    [[nodiscard]] Meter::Tokens::Token &lookahead() {
-      ensureQueued<numAhead>();
-      return tokenQueue[numAhead];
-    }
-
-    template<int numAhead = 0, typename TokenT>
-    [[nodiscard]] bool lookaheadMatch(TokenT = TokenT{}) {
-      return std::holds_alternative<TokenT>(lookahead<numAhead>());
-    }
-
-    template<typename TokenT>
-    bool tryPop(TokenT = TokenT{}) {
-      if(lookaheadMatch<0, TokenT>()) {
-        pop();
-        return true;
-      }
-      return false;
-    }
-
-    void pop() {
-      ensureQueued();
-      tokenQueue.pop_front();
-    }
-
-    [[nodiscard]] Meter::Tokens::Token consume() {
-      auto ret = lookahead();
-      pop();
-      return ret;
-    }
-  };
 }

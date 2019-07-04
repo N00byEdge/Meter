@@ -1,4 +1,4 @@
-#include "Meter/AST.hh"
+#include "Meter/ASTizer.hh"
 #include "Meter/Types.hh"
 
 #include <optional>
@@ -19,7 +19,7 @@ namespace {
   }
 
   template<typename TokenT>
-  decltype(auto) expectToken(Meter::Tokens::ParserContext &ctx, TokenT = TokenT{}) {
+  decltype(auto) expectToken(Meter::AST::ParserContext &ctx, TokenT = TokenT{}) {
     return std::visit(Meter::Overload{
         [](TokenT &&t)   -> TokenT && { return std::move(t); }
       , [](auto &&other) -> TokenT && {
@@ -29,24 +29,24 @@ namespace {
     }, std::move(ctx.consume()));
   }
 
-  Meter::AST::Expression parseExpr(Meter::Tokens::ParserContext &ctx, int maxPrec = 55555);
-  Meter::AST::Statement parseStmt(Meter::Tokens::ParserContext &ctx);
+  Meter::AST::Expression parseExpr(Meter::AST::ParserContext &ctx, int maxPrec = 55555);
+  Meter::AST::Statement parseStmt(Meter::AST::ParserContext &ctx);
 
   template<typename PrefOp>
-  Meter::AST::Expression handlePrefix(Meter::Tokens::ParserContext &ctx) {
+  Meter::AST::Expression handlePrefix(Meter::AST::ParserContext &ctx) {
     auto op = PrefOp { std::make_unique<Meter::AST::Expression>(parseExpr(ctx, PrefOp::prec)) };
     return std::move(op);
   }
 
   template<typename PostOp>
-  void handlePostfix(Meter::Tokens::ParserContext &ctx, Meter::AST::Expression &currExpr) {
+  void handlePostfix(Meter::AST::ParserContext &ctx, Meter::AST::Expression &currExpr) {
     ctx.pop();
     PostOp pop{std::make_unique<Meter::AST::Expression>(std::move(currExpr))};
     currExpr = std::move(pop);
   }
 
   template<typename BOp>
-  void handleBOp(Meter::Tokens::ParserContext &ctx, int maxPrec, bool &terminate, Meter::AST::Expression &currExpr) {
+  void handleBOp(Meter::AST::ParserContext &ctx, int maxPrec, bool &terminate, Meter::AST::Expression &currExpr) {
     if((maxPrec >= BOp::prec && std::is_same_v<typename BOp::assoc, Meter::AST::RightAssociative>)
      || maxPrec >  BOp::prec) {
       ctx.pop();
@@ -61,7 +61,7 @@ namespace {
   }
 
   template<typename FOp>
-  void handleFOp(Meter::Tokens::ParserContext &ctx, Meter::AST::Expression &currExpr) {
+  void handleFOp(Meter::AST::ParserContext &ctx, Meter::AST::Expression &currExpr) {
     ctx.pop();
     FOp fop;
     fop.callee = std::make_unique<Meter::AST::Expression>(std::move(currExpr));
@@ -77,7 +77,7 @@ namespace {
     currExpr = std::move(fop);
   }
 
-  Meter::AST::Expression parseDecl(Meter::Tokens::ParserContext &ctx, Meter::AST::Expression type) {
+  Meter::AST::Expression parseDecl(Meter::AST::ParserContext &ctx, Meter::AST::Expression type) {
     auto ident = expectToken<Meter::Tokens::Identifier>(ctx);
     auto tp = std::make_unique<Meter::AST::Expression>(std::move(type));
     return std::visit(Meter::Overload{
@@ -135,7 +135,7 @@ namespace {
     }, ctx.lookahead());
   }
 
-  Meter::AST::Expression parseExpr(Meter::Tokens::ParserContext &ctx, int maxPrec) {
+  Meter::AST::Expression parseExpr(Meter::AST::ParserContext &ctx, int maxPrec) {
     auto expr = std::visit(Meter::Overload{
         // Non-operators
         [&](Meter::Tokens::Identifier ident) -> Meter::AST::Expression { return Meter::AST::Expression{ident}; }
@@ -230,7 +230,7 @@ namespace {
     return expr;
   }
 
-  Meter::AST::Statement parseStmt(Meter::Tokens::ParserContext &ctx) {
+  Meter::AST::Statement parseStmt(Meter::AST::ParserContext &ctx) {
     return std::visit(Meter::Overload{
         [&](decltype("for"_token)) -> Meter::AST::Statement {
           ctx.pop();
@@ -308,7 +308,7 @@ namespace {
   }
 }
 
-std::deque<Meter::AST::Statement> Meter::AST::makeAST(Meter::Tokens::ParserContext &ctx, std::ostream &os) {
+std::deque<Meter::AST::Statement> Meter::AST::makeAST(Meter::AST::ParserContext &ctx, std::ostream &os) {
   std::deque<Meter::AST::Statement> ret;
 
   while(!ctx.lookaheadMatch(Tokens::EndOfFile)) {
