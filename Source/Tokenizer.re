@@ -4,19 +4,21 @@
 #include "Meter/Tokenizer.hh"
 
 Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext &context) {
+  auto contextStart = context;
   if(!context.view.size())
     return Tokens::EndOfFile;
   char const *const tokenStart = &context.view[0];
   auto num = [&] { return static_cast<std::size_t>(&context.view[0] - tokenStart); };
   auto tok = [&] (auto tokenVal) {
-    tokenVal.context.view = decltype(context.view){tokenStart, num()};
-    tokenVal.context.lineStart = context.rowLoc;
-    tokenVal.context.columnStart = context.columnLoc;
-    tokenVal.context.columnEnd = context.columnLoc + num();
+    tokenVal.context.view = contextStart.view.substr(0, num());
+    tokenVal.context.lineStart = contextStart.rowLoc;
+    tokenVal.context.columnStart = contextStart.columnLoc;
+    tokenVal.context.columnEnd = context.columnLoc;
+    if constexpr(std::is_same_v<decltype(tokenVal.value), std::string_view>) {
+      tokenVal.length = num();
+      tokenVal.value = tokenVal.context.view;
+    }
     return tokenVal;
-  };
-  auto ident = [&] {
-    return tok(Identifier{});
   };
 
   decltype(context.view) backup;
@@ -38,10 +40,26 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext
   re2c:yyfill:enable = 0;
   re2c:define:YYCTYPE = chr;
 
-  "\x00"                       {                      return true;       }
-  "\r\n"|[\r\n]                { context.rows();      return self(self); }
-  "*""/"                       {                      return false;      }
-  ([^*\x00] | ("*" [^/\x00]))* { context.cols(num()); return self(self); }
+  "\x00"                               {                      return true;       }
+  "\r\n"|[\r\n]                        { context.rows();      return self(self); }
+  "*""/"                               { context.cols(num()); return false;      }
+  ([^*\x00\r\n] | ("*" [^/\x00\r\n]))* { context.cols(num()); return self(self); }
+*/
+    };
+    if(eat(eat)) return Tokens::EndOfFile;
+    return consumeToken(context);
+  };
+
+  [[maybe_unused]]
+  auto parseString = [&]() -> Tokens::Token {
+    auto eat = [&](auto self) -> bool {
+/*!re2c
+  re2c:yyfill:enable = 0;
+  re2c:define:YYCTYPE = chr;
+
+  "\x00"                    {                      return true;       }
+  "\""                      { context.cols(num()); return false;      }
+  ([^\"\x00\r\n] | "\\\"")* { context.cols(num()); return self(self); }
 */
     };
     if(eat(eat)) return Tokens::EndOfFile;
@@ -131,7 +149,8 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext
   "\r\n"|[\r\n] { context.rows();            return consumeToken(context); }
 
   "/*"          { return blockComment(); }
+  "\"" ([^\"\x00\r\n] | "\\\"")* "\"" { return tok(Tokens::Literal{}); }
 
-  identstart identchar * { return ident(); }
+  identstart identchar * { return tok(Tokens::Identifier{}); }
 */
 }

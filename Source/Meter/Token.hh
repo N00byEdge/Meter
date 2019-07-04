@@ -26,20 +26,20 @@ namespace Meter::Tokens {
       inline static constexpr char value[] = {c..., '\0'};
       TokenContext context;
     };
-    template<typename T, typename Tag>
+    template<typename Tag>
     struct VarLenToken {
       std::intptr_t length;
-      T value;
+      std::string_view value;
       TokenContext context;
     };
   }
 
-  struct Literal:    Impl::VarLenToken<std::string_view, Literal>{};
-  struct Identifier: Impl::VarLenToken<std::string_view, Identifier>{
+  struct Literal:    Impl::VarLenToken<Literal>{};
+  struct Identifier: Impl::VarLenToken<Identifier>{
     bool operator<(Identifier const &other) const { return std::string_view{value} < other.value; }
   };
-  struct Number:     Impl::VarLenToken<std::string_view, Number>{};
-  struct Float:      Impl::VarLenToken<std::string_view, Float>{};
+  struct Number:     Impl::VarLenToken<Number>{};
+  struct Float:      Impl::VarLenToken<Float>{};
 
   namespace Impl {
     template<typename ...Ts>
