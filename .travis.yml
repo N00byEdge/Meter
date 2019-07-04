@@ -10,7 +10,7 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - g++-7
+      - g++-9
 
 #script:
 #  - make
@@ -19,7 +19,7 @@ addons:
 script:
   - mkdir build
   - pushd build
-  - CC=gcc-7 CXX=g++-7 cmake ..
+  - CC=gcc-9 CXX=g++-9 cmake ..
   - make VERBOSE=1
   # Todo: export these test results
   - ASAN_OPTIONS=detect_leaks=0 ./tests --gtest_output=xml:"tests.xml"
