@@ -5,13 +5,14 @@
 namespace Meter::Tokens {
   struct TokenizerContext {
     std::string_view view;
-    int columnLoc = 0;
-    int rowLoc = 0;
+    std::string_view filename = "unknown";
+    int columnLoc = 1;
+    int rowLoc = 1;
     void cols(int num = 1) {
       columnLoc += num;
     }
     void rows(int num = 1) {
-      columnLoc = 0;
+      columnLoc = 1;
       rowLoc += num;
     }
   };

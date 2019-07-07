@@ -9,7 +9,8 @@
 namespace Meter::Tokens {
   struct TokenContext {
     std::string_view view;
-    int lineStart, columnStart, columnEnd;
+    std::string_view filename;
+    int line, columnStart, columnEnd;
   };
 
   struct EOF_T {

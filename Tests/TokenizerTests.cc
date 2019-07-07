@@ -1,4 +1,5 @@
 #include "Meter/Tokenizer.hh"
+#include "Meter/CompileError.hh"
 
 #include "gtest/gtest.h"
 
@@ -29,7 +30,7 @@ auto tokenizeString(std::string_view input,
   }
 }
 
-TEST(Tokenizer, TokenStrings) {
+TEST(Tokenizer, TokenizeStrings) {
   tokenizeString("", {});
   tokenizeString("++", {"++"_token});
   tokenizeString("+++", {"++"_token, "+"_token});
@@ -49,6 +50,65 @@ TEST(Tokenizer, TokenStrings) {
   tokenizeString("/*+++++*/", {});
   tokenizeString("//+++++\n+", {"+"_token});
   tokenizeString("/*+++++*/+", {"+"_token});
+}
+
+auto getTokens(std::string_view input) {
+  Meter::Tokens::TokenizerContext context;
+  context.view = input;
+  std::vector<Meter::Tokens::Token> tokens;
+  while(1) {
+    auto tok = Meter::Tokens::consumeToken(context);
+    if(std::holds_alternative<Meter::Tokens::EOF_T>(tok))
+      break;
+    tokens.emplace_back(std::move(tok));
+  }
+  return tokens;
+}
+
+TEST(Tokenizer, TokenContext) {
+  {
+    auto sv = "ident"sv;
+    // Expected result
+    tokenizeString(sv, {Meter::Tokens::Identifier{}});
+
+    auto toks = getTokens(sv);
+    auto &ident = std::get<Meter::Tokens::Identifier>(toks[0]);
+    EXPECT_EQ(ident.context.view, sv);
+    EXPECT_EQ(ident.context.line, 1);
+    EXPECT_EQ(ident.context.columnStart, 1);
+    EXPECT_EQ(ident.context.columnEnd, 6);
+  }
+
+  {
+    auto sv = "    ident"sv;
+    // Expected result
+    tokenizeString(sv, {Meter::Tokens::Identifier{}});
+
+    auto toks = getTokens(sv);
+    auto &ident = std::get<Meter::Tokens::Identifier>(toks[0]);
+    EXPECT_EQ(ident.context.view, sv.substr(4));
+    EXPECT_EQ(ident.context.line, 1);
+    EXPECT_EQ(ident.context.columnStart, 5);
+    EXPECT_EQ(ident.context.columnEnd, 10);
+  }
+
+  {
+    auto sv = "   \nident"sv;
+    // Expected result
+    tokenizeString(sv, {Meter::Tokens::Identifier{}});
+
+    auto toks = getTokens(sv);
+    auto &ident = std::get<Meter::Tokens::Identifier>(toks[0]);
+    EXPECT_EQ(ident.context.view, sv.substr(4));
+    EXPECT_EQ(ident.context.line, 2);
+    EXPECT_EQ(ident.context.columnStart, 1);
+    EXPECT_EQ(ident.context.columnEnd, 6);
+  }
+}
+
+TEST(Tokenizer, SyntaxErr) {
+  ASSERT_THROW(tokenizeString("\"", {}), Meter::SyntaxError);
+  ASSERT_THROW(tokenizeString("\x07", {}), Meter::SyntaxError);
 }
 
 #define ParseOperator(TestName, Token)                                    \

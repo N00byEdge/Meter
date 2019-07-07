@@ -2,18 +2,20 @@
 #include <cctype>
 
 #include "Meter/Tokenizer.hh"
+#include "Meter/CompileError.hh"
 
 Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext &context) {
   auto contextStart = context;
   if(!context.view.size())
     return Tokens::EndOfFile;
-  char const *const tokenStart = &context.view[0];
-  auto num = [&] { return static_cast<std::size_t>(&context.view[0] - tokenStart); };
+  auto num = [&] { return static_cast<std::size_t>(&context.view[0] - &contextStart.view[0]); };
   auto tok = [&] (auto tokenVal) {
+    context.cols(num());
     tokenVal.context.view = contextStart.view.substr(0, num());
-    tokenVal.context.lineStart = contextStart.rowLoc;
+    tokenVal.context.line = contextStart.rowLoc;
     tokenVal.context.columnStart = contextStart.columnLoc;
     tokenVal.context.columnEnd = context.columnLoc;
+    tokenVal.context.filename = context.filename;
     if constexpr(std::is_same_v<decltype(tokenVal.value), std::string_view>) {
       tokenVal.length = num();
       tokenVal.value = tokenVal.context.view;
@@ -43,23 +45,7 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext
   "\x00"                               {                      return true;       }
   "\r\n"|[\r\n]                        { context.rows();      return self(self); }
   "*""/"                               { context.cols(num()); return false;      }
-  ([^*\x00\r\n] | ("*" [^/\x00\r\n]))* { context.cols(num()); return self(self); }
-*/
-    };
-    if(eat(eat)) return Tokens::EndOfFile;
-    return consumeToken(context);
-  };
-
-  [[maybe_unused]]
-  auto parseString = [&]() -> Tokens::Token {
-    auto eat = [&](auto self) -> bool {
-/*!re2c
-  re2c:yyfill:enable = 0;
-  re2c:define:YYCTYPE = chr;
-
-  "\x00"                    {                      return true;       }
-  "\""                      { context.cols(num()); return false;      }
-  ([^\"\x00\r\n] | "\\\"")* { context.cols(num()); return self(self); }
+  ([^*\x00\r\n] | ("*" [^/\x00\r\n]))+ { context.cols(num()); return self(self); }
 */
     };
     if(eat(eat)) return Tokens::EndOfFile;
@@ -150,7 +136,30 @@ Meter::Tokens::Token Meter::Tokens::consumeToken(Meter::Tokens::TokenizerContext
 
   "/*"          { return blockComment(); }
   "\"" ([^\"\x00\r\n] | "\\\"")* "\"" { return tok(Tokens::Literal{}); }
+  "\"" ([^\"\x00\r\n] | "\\\"")* {
+    Meter::Tokens::TokenContext cont;
+    cont.columnEnd = context.columnLoc;
+    cont.columnStart = contextStart.columnLoc;
+    cont.line = context.rowLoc;
+    cont.filename = context.filename;
+    Meter::SyntaxError error;
+    error.context = cont;
+    error.errorMessage = "Expected end of string literal";
+    throw error;
+  }
 
   identstart identchar * { return tok(Tokens::Identifier{}); }
 */
+
+  Meter::Tokens::TokenContext cont;
+  cont.columnEnd = context.columnLoc;
+  cont.columnStart = contextStart.columnLoc;
+  cont.line = context.rowLoc;
+  cont.filename = context.filename;
+  Meter::SyntaxError error;
+  error.context = cont;
+  error.errorMessage = "What is this? How do I parse this?";
+  throw error;
 }
+
+#include <iostream>
