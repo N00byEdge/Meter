@@ -34,6 +34,16 @@ namespace Meter::AST {
     };
   }
 
+  template<typename T>
+  bool isUnaryOp = false;
+  template<typename TToken, typename Assoc, int prec>
+  bool isUnaryOp<Impl::UnaryOperator<TToken, Assoc, prec>> = true;
+
+  template<typename T>
+  bool isBinaryOp = false;
+  template<typename TToken, typename Assoc, int prec>
+  bool isBinaryOp<Impl::BinaryOperator<TToken, Assoc, prec>> = true;
+
   using namespace Meter::Tokens::Literals;
   using MemberAccess     = Impl::BinaryOperator<decltype("."_token),   LeftAssociative, 2>;
   using Postincrement    = Impl::UnaryOperator <decltype("++"_token),  LeftAssociative, 2>;
@@ -175,6 +185,7 @@ namespace Meter::AST {
 
   struct Expression: Impl::ExpressionVar {
     using Impl::ExpressionVar::ExpressionVar;
+    Expression(Impl::ExpressionVar &&sv): Impl::ExpressionVar{std::move(sv)} { }
   };
 
   struct IfStatement { Expression condition; Impl::StmtRef taken, notTaken; };
@@ -198,6 +209,7 @@ namespace Meter::AST {
 
   struct Statement: Impl::StatementVar {
     using Impl::StatementVar::StatementVar;
+    Statement(Impl::StatementVar &&sv): Impl::StatementVar{std::move(sv)} { }
   };
 
   using Statements = std::deque<Statement>;

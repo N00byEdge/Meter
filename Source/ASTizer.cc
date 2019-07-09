@@ -308,16 +308,11 @@ namespace {
   }
 }
 
-std::deque<Meter::AST::Statement> Meter::AST::makeAST(Meter::AST::ParserContext &ctx, std::ostream &os) {
+std::deque<Meter::AST::Statement> Meter::AST::makeAST(Meter::AST::ParserContext &ctx) {
   std::deque<Meter::AST::Statement> ret;
 
   while(!ctx.lookaheadMatch(Tokens::EndOfFile)) {
-    try {
-      ret.emplace_back(parseStmt(ctx));
-    } catch(BadParse bp) {
-      os << "Parsing failed: " + bp.s;
-      return ret;
-    }
+    ret.emplace_back(parseStmt(ctx));
   }
 
   return ret;

@@ -46,5 +46,5 @@ namespace Meter::AST {
     }
   };
 
-  Meter::AST::Statements makeAST(ParserContext &ctx, std::ostream &os);
+  Meter::AST::Statements makeAST(ParserContext &ctx);
 }
