@@ -122,6 +122,10 @@ namespace Meter::AST {
                            using trigger = decltype(";"_token);
                          };
 
+  struct LiteralExpression {
+    std::vector<Tokens::Literal> literals;
+  };
+
   struct CompoundStatement { std::deque<Statement> stmts; };
   struct ASTExpr: CompoundStatement { };
   
@@ -173,7 +177,7 @@ namespace Meter::AST {
       , BitXorAssign
       , BitOrAssign
       , Identifier
-      , Tokens::Literal
+      , LiteralExpression
       , Tokens::Number
       , Tokens::Float
       , Decl

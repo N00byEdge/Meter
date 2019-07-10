@@ -140,8 +140,15 @@ namespace {
         // Non-operators
         [&](Meter::Tokens::Identifier ident) -> Meter::AST::Expression { return Meter::AST::Expression{ident}; }
       , [&](Meter::Tokens::Number     num)   -> Meter::AST::Expression { return Meter::AST::Expression{num};   }
-      , [&](Meter::Tokens::Literal    lit)   -> Meter::AST::Expression { return Meter::AST::Expression{lit};   }
       , [&](Meter::Tokens::Float      flt)   -> Meter::AST::Expression { return Meter::AST::Expression{flt};   }
+      , [&](Meter::Tokens::Literal    lit)   -> Meter::AST::Expression {
+        Meter::AST::LiteralExpression expr;
+        expr.literals.emplace_back(lit);
+        while(ctx.lookaheadMatch<0, Meter::Tokens::Literal>()) {
+          expr.literals.emplace_back(std::get<Meter::Tokens::Literal>(ctx.consume()));
+        }
+        return expr;
+      }
         // Prefix operators
       , [&](decltype("++"_token)) -> Meter::AST::Expression { return handlePrefix<Meter::AST::Preincrement>(ctx); }
       , [&](decltype("--"_token)) -> Meter::AST::Expression { return handlePrefix<Meter::AST::Predecrement>(ctx); }
