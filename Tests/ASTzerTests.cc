@@ -20,7 +20,7 @@ void expect_match(Meter::AST::Statement const &actual, Meter::AST::Statement con
   }
 
   /*std::visit([&expected](auto &actual) {
-    [expected = std::get<decltype(actual)>(expected), &actual]() {
+    [&expected = std::get<decltype(actual)>(expected), &actual]() {
     }();
   }, actual);*/
 }
@@ -28,11 +28,7 @@ void expect_match(Meter::AST::Statement const &actual, Meter::AST::Statement con
 void expect_match(Meter::AST::Statements const &actual, Meter::AST::Statements const &expected) {
   EXPECT_EQ(actual.size(), expected.size());
 
-  if(actual.size() != expected.size())
-    return;
-
   auto m = std::min(actual.size(), expected.size());
-
   for(auto i = 0; i < m; ++ i)
     expect_match(actual[i], expected[i]);
 }
