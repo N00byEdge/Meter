@@ -12,6 +12,7 @@ addons:
     packages:
       - g++-9
       - re2c
+      - kcov
 
 #script:
 #  - make
