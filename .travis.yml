@@ -20,8 +20,8 @@ addons:
 script:
   - mkdir build
   - pushd build
-  - CC=gcc-9 CXX=g++-9 cmake ..
-  - make VERBOSE=1 -DCMAKE_BUILD_TYPE=Debug
+  - CC=gcc-9 CXX=g++-9 cmake .. -DCMAKE_BUILD_TYPE=Debug
+  - make VERBOSE=1
   # Todo: export these test results
   - kcov --coveralls-id=$TRAVIS_JOB_ID --include-pattern='Meter/Source' ./out tests --gtest_output=xml:"tests.xml"
   - popd
