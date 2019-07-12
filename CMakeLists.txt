@@ -5,9 +5,9 @@ project(Meter-test)
 enable_language(CXX)
 
 if(NOT (CMAKE_CXX_COMPILER_ID MATCHES MSVC)) #GCC
-  set(CMAKE_CXX_FLAGS "-std=c++2a -Werror -fsanitize=address,undefined -Wall -Wno-mismatched-tags -Wno-sign-compare")
+  set(CMAKE_CXX_FLAGS "-std=c++2a -Werror -fsanitize=undefined -Wall -Wno-mismatched-tags -Wno-sign-compare")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage -fexceptions -fuse-ld=gold -pthread")
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g3")
+  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g3 -fprofile-arcs -ftest-coverage")
   set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
