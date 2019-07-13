@@ -19,7 +19,9 @@ void expect_match(Meter::AST::Statement const &actual, Meter::AST::Statement con
     return;
   }
 
-  /*std::visit([&expected](auto &actual) {
+  /*
+  TODO: Actually check the statements themselves
+  std::visit([&expected](auto &actual) {
     [&expected = std::get<decltype(actual)>(expected), &actual]() {
     }();
   }, actual);*/
@@ -107,6 +109,62 @@ TEST(ASTizer, Name) {                                \
     ASTize({ident, Op##_token, ";"_token}, st);      \
   }                                                  \
 }
+
 BasicPostfix(PostIncIdent, Postincrement, "++");
 BasicPostfix(PostDecIdent, Postdecrement, "--");
 #undef BasicPostfix
+
+TEST(ASTizer, NoArgsFCall) {
+  Meter::AST::FCall call;
+  Meter::AST::ExpressionStatment est{std::move(call)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "("_token, ")"_token, ";"_token}, st);
+}
+
+TEST(ASTizer, OneArgFCall) {
+  Meter::AST::FCall call;
+  Meter::AST::ExpressionStatment est{std::move(call)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "("_token, randomIdent(), ")"_token, ";"_token}, st);
+}
+
+TEST(ASTizer, TwoArgsFCall) {
+  Meter::AST::FCall call;
+  Meter::AST::ExpressionStatment est{std::move(call)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "("_token, randomIdent(), ","_token, randomIdent(), ")"_token, ";"_token}, st);
+}
+
+TEST(ASTizer, NoArgsSubscript) {
+  Meter::AST::Subscript call;
+  Meter::AST::ExpressionStatment est{std::move(call)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "["_token, "]"_token, ";"_token}, st);
+}
+
+TEST(ASTizer, OneArgSubscript) {
+  Meter::AST::Subscript call;
+  Meter::AST::ExpressionStatment est{std::move(call)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "["_token, randomIdent(), "]"_token, ";"_token}, st);
+}
+
+TEST(ASTizer, TwoArgsSubscript) {
+  Meter::AST::Subscript call;
+  Meter::AST::ExpressionStatment est{std::move(call)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "["_token, randomIdent(), ","_token, randomIdent(), "]"_token, ";"_token}, st);
+}
+
