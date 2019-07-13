@@ -72,7 +72,7 @@ void ASTize(std::vector<Meter::Tokens::Token> tokens,
   expect_match(Meter::AST::makeAST(ctx), expectedStatements);
 }
 
-#define TestUnaryWIdent(Name, Type)                  \
+#define BasicPrefix(Name, Type, Op)                  \
 TEST(ASTizer, Name) {                                \
   Meter::AST::Type pi;                               \
   Meter::AST::ExpressionStatment est{std::move(pi)}; \
@@ -81,10 +81,32 @@ TEST(ASTizer, Name) {                                \
                                                      \
   for(int i = 0; i < 100; ++ i) {                    \
     auto ident = randomIdent();                      \
-    ASTize({ident, "++"_token, ";"_token}, st);      \
+    ASTize({Op##_token, ident, ";"_token}, st);      \
   }                                                  \
 }
 
-TestUnaryWIdent(PreIncIdent, Preincrement);
-TestUnaryWIdent(PostIncIdent, Postincrement);
-#undef TestUnaryWIdent
+BasicPrefix(PreIncIdent, Preincrement, "++");
+BasicPrefix(PreDecIdent, Predecrement, "--");
+BasicPrefix(UnaryPlusIdent, UnaryPlus, "+");
+BasicPrefix(UnaryMinusIdent, UnaryMinus, "-");
+BasicPrefix(NotIdent, UnaryNot, "!");
+BasicPrefix(BitNotIdent, BitNot, "~");
+BasicPrefix(DereferenceIdent, Dereference, "*");
+BasicPrefix(AddressofIdent, Addressof, "&");
+#undef BasicPrefix
+
+#define BasicPostfix(Name, Type, Op)                 \
+TEST(ASTizer, Name) {                                \
+  Meter::AST::Type pi;                               \
+  Meter::AST::ExpressionStatment est{std::move(pi)}; \
+  Meter::AST::Statements st;                         \
+  st.emplace_back(std::move(est));                   \
+                                                     \
+  for(int i = 0; i < 100; ++ i) {                    \
+    auto ident = randomIdent();                      \
+    ASTize({ident, Op##_token, ";"_token}, st);      \
+  }                                                  \
+}
+BasicPostfix(PostIncIdent, Postincrement, "++");
+BasicPostfix(PostDecIdent, Postdecrement, "--");
+#undef BasicPostfix
