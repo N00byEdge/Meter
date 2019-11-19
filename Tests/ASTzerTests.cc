@@ -168,3 +168,11 @@ TEST(ASTizer, TwoArgsSubscript) {
   ASTize({randomIdent(), "["_token, randomIdent(), ","_token, randomIdent(), "]"_token, ";"_token}, st);
 }
 
+TEST(ASTizer, TernaryOperator) {
+  Meter::AST::Ternary top{};
+  Meter::AST::ExpressionStatment est{std::move(top)};
+  Meter::AST::Statements st;
+  st.emplace_back(std::move(est));
+
+  ASTize({randomIdent(), "?"_token, randomIdent(), ":"_token, randomIdent(), ";"_token}, st);
+}
