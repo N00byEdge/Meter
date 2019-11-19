@@ -175,4 +175,7 @@ TEST(ASTizer, TernaryOperator) {
   st.emplace_back(std::move(est));
 
   ASTize({randomIdent(), "?"_token, randomIdent(), ":"_token, randomIdent(), ";"_token}, st);
+  ASTize({randomIdent(), "+"_token, randomIdent(), "?"_token, randomIdent(), ":"_token, randomIdent(), ";"_token}, st);
+  ASTize({randomIdent(), "?"_token, randomIdent(), "+"_token, randomIdent(), ":"_token, randomIdent(), ";"_token}, st);
+  ASTize({randomIdent(), "?"_token, randomIdent(), ":"_token, randomIdent(), "+"_token, randomIdent(), ";"_token}, st);
 }
