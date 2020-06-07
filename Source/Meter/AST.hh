@@ -1,196 +1,214 @@
 #pragma once
 
-#include "Meter/Token.hh"
-
 #include <memory>
-#include <iostream>
 #include <iterator>
+#include <deque>
+#include <vector>
+#include <variant>
+
+#include "Meter/Identifier.hh"
+#include "Meter/Overload.hh"
 
 namespace Meter::AST {
-  using Identifier = Tokens::Identifier;
-  struct Expression;
-  struct Statement;
-  
-  struct LeftAssociative;
-  struct RightAssociative;
   namespace Impl {
+    struct Expression;
+    struct Statement;
+
     using ExprRef = std::unique_ptr<Expression>;
     using StmtRef = std::unique_ptr<Statement>;
-
-    template<typename TriggerToken, typename Associativity, int precedence>
-    struct BinaryOperator {
-      inline constexpr static auto prec = precedence;
-      using trigger = TriggerToken;
-      using assoc = Associativity;
-      ExprRef lhs, rhs;
-    };
-
-    template<typename TriggerToken, typename Associativity, int precedence>
-    struct UnaryOperator {
-      inline constexpr static auto prec = precedence;
-      using trigger = TriggerToken;
-      using assoc = Associativity;
-      ExprRef operand;
-    };
   }
+
+  template<typename tag>
+  struct BinaryOperator {
+    Impl::ExprRef lhs, rhs;
+  };
+
+  template<typename tag>
+  struct UnaryOperator {
+    Impl::ExprRef operand;
+  };
+
+  using Statements = std::deque<Impl::Statement>;
+  using Expressions = std::deque<Impl::Expression>;
+
+  struct NominalCallParameter {
+    Identifier ident;
+    Impl::ExprRef value;
+  };
+
+  struct PositionalCallParameter {
+    Impl::ExprRef value;
+  };
+
+  using NominalCallParameters = std::deque<NominalCallParameter>;
+  using PositionalCallParameters = std::deque<PositionalCallParameter>;
+
+  struct CallParamaterList {
+    PositionalCallParameters positional_parameters;
+    NominalCallParameters nominal_parameters;
+  };
 
   template<typename T>
   bool isUnaryOp = false;
-  template<typename TToken, typename Assoc, int prec>
-  bool isUnaryOp<Impl::UnaryOperator<TToken, Assoc, prec>> = true;
+  template<typename tag>
+  bool isUnaryOp<UnaryOperator<tag>> = true;
 
   template<typename T>
   bool isBinaryOp = false;
-  template<typename TToken, typename Assoc, int prec>
-  bool isBinaryOp<Impl::BinaryOperator<TToken, Assoc, prec>> = true;
+  template<typename tag>
+  bool isBinaryOp<BinaryOperator<tag>> = true;
 
-  using namespace Meter::Tokens::Literals;
-  using MemberAccess     = Impl::BinaryOperator<decltype("."_token),   LeftAssociative, 2>;
-  using Postincrement    = Impl::UnaryOperator <decltype("++"_token),  LeftAssociative, 2>;
-  using Postdecrement    = Impl::UnaryOperator <decltype("--"_token),  LeftAssociative, 2>;
-  struct FCall           {
-                           inline constexpr static auto prec = 2;
-                           using begin = decltype("("_token);
-                           using end   = decltype(")"_token);
-                           Impl::ExprRef callee;
-                           std::deque<Expression> arguments;
-                         };
-  struct Subscript       {
-                           inline constexpr static auto prec = 2;
-                           using begin = decltype("["_token);
-                           using end   = decltype("]"_token);
-                           Impl::ExprRef callee;
-                           std::deque<Expression> arguments;
-                         };
-  using Preincrement     = Impl::UnaryOperator <decltype("++"_token),  RightAssociative, 3>;
-  using Predecrement     = Impl::UnaryOperator <decltype("--"_token),  RightAssociative, 3>;
-  using UnaryPlus        = Impl::UnaryOperator <decltype("+"_token),   RightAssociative, 3>;
-  using UnaryMinus       = Impl::UnaryOperator <decltype("-"_token),   RightAssociative, 3>;
-  using UnaryNot         = Impl::UnaryOperator <decltype("!"_token),   RightAssociative, 3>;
-  using BitNot           = Impl::UnaryOperator <decltype("~"_token),   RightAssociative, 3>;
-  using Dereference      = Impl::UnaryOperator <decltype("*"_token),   RightAssociative, 3>;
-  using Addressof        = Impl::UnaryOperator <decltype("&"_token),   RightAssociative, 3>;
-  using MemberDeref      = Impl::BinaryOperator<decltype("->"_token),  LeftAssociative, 4>;
-  using Multiplication   = Impl::BinaryOperator<decltype("*"_token),   LeftAssociative, 5>;
-  using Division         = Impl::BinaryOperator<decltype("/"_token),   LeftAssociative, 5>;
-  using Modulus          = Impl::BinaryOperator<decltype("%"_token),   LeftAssociative, 5>;
-  using Addition         = Impl::BinaryOperator<decltype("+"_token),   LeftAssociative, 6>;
-  using Subtraction      = Impl::BinaryOperator<decltype("-"_token),   LeftAssociative, 6>;
-  using LeftShift        = Impl::BinaryOperator<decltype("<<"_token),  LeftAssociative, 7>;
-  using RightShift       = Impl::BinaryOperator<decltype(">>"_token),  LeftAssociative, 7>;
-  using Compare          = Impl::BinaryOperator<decltype("<=>"_token), LeftAssociative, 8>;
-  using Less             = Impl::BinaryOperator<decltype("<"_token),   LeftAssociative, 9>;
-  using LessEquals       = Impl::BinaryOperator<decltype("<="_token),  LeftAssociative, 9>;
-  using Greater          = Impl::BinaryOperator<decltype(">"_token),   LeftAssociative, 9>;
-  using GreaterEquals    = Impl::BinaryOperator<decltype(">="_token),  LeftAssociative, 9>;
-  using Equals           = Impl::BinaryOperator<decltype("=="_token),  LeftAssociative, 10>;
-  using NotEquals        = Impl::BinaryOperator<decltype("!="_token),  LeftAssociative, 10>;
-  using BitAnd           = Impl::BinaryOperator<decltype("&"_token),   LeftAssociative, 11>;
-  using BitXor           = Impl::BinaryOperator<decltype("^"_token),   LeftAssociative, 12>;
-  using BitOr            = Impl::BinaryOperator<decltype("|"_token),   LeftAssociative, 13>;
-  using LogicalAnd       = Impl::BinaryOperator<decltype("&&"_token),  LeftAssociative, 14>;
-  using LogicalOr        = Impl::BinaryOperator<decltype("||"_token),  LeftAssociative, 15>;
-  struct Ternary         {
-                           inline constexpr static auto prec = 16;
-                           using trigger = decltype("?"_token);
-                           Impl::ExprRef cond, taken, notTaken;
-                         };
-  using Assignment       = Impl::BinaryOperator<decltype("="_token),   RightAssociative, 16>;
-  using AddAssign        = Impl::BinaryOperator<decltype("+="_token),  RightAssociative, 16>;
-  using SubAssign        = Impl::BinaryOperator<decltype("-="_token),  RightAssociative, 16>;
-  using MulAssign        = Impl::BinaryOperator<decltype("*="_token),  RightAssociative, 16>;
-  using DivAssign        = Impl::BinaryOperator<decltype("/="_token),  RightAssociative, 16>;
-  using ModAssign        = Impl::BinaryOperator<decltype("%="_token),  RightAssociative, 16>;
-  using ShiftLeftAssign  = Impl::BinaryOperator<decltype("<<="_token), RightAssociative, 16>;
-  using ShiftRightAssign = Impl::BinaryOperator<decltype(">>="_token), RightAssociative, 16>;
-  using BitAndAssign     = Impl::BinaryOperator<decltype("&="_token),  RightAssociative, 16>;
-  using BitXorAssign     = Impl::BinaryOperator<decltype("^="_token),  RightAssociative, 16>;
-  using BitOrAssign      = Impl::BinaryOperator<decltype("|="_token),  RightAssociative, 16>;
+  struct MemberAccess     : BinaryOperator<MemberAccess> { };
+  struct Postincrement    : UnaryOperator <Postincrement> { };
+  struct Postdecrement    : UnaryOperator <Postdecrement> { };
+  struct FCall            {
+                            Impl::ExprRef callee;
+                            CallParamaterList arguments;
+                          };
+  struct Subscript        {
+                            Impl::ExprRef callee;
+                            CallParamaterList arguments;
+                          };
+  struct Preincrement     : UnaryOperator <Preincrement> { };
+  struct Predecrement     : UnaryOperator <Predecrement> { };
+  struct UnaryPlus        : UnaryOperator <UnaryPlus> { };
+  struct UnaryMinus       : UnaryOperator <UnaryMinus> { };
+  struct UnaryNot         : UnaryOperator <UnaryNot> { };
+  struct BitNot           : UnaryOperator <BitNot> { };
+  struct Dereference      : UnaryOperator <Dereference> { };
+  struct Addressof        : UnaryOperator <Addressof> { };
+  struct MemberDeref      : BinaryOperator<MemberDeref> { };
+  struct Multiplication   : BinaryOperator<Multiplication> { };
+  struct Division         : BinaryOperator<Division> { };
+  struct Modulus          : BinaryOperator<Modulus> { };
+  struct Addition         : BinaryOperator<Addition> { };
+  struct Subtraction      : BinaryOperator<Subtraction> { };
+  struct LeftShift        : BinaryOperator<LeftShift> { };
+  struct RightShift       : BinaryOperator<RightShift> { };
+  struct Compare          : BinaryOperator<Compare> { };
+  struct Less             : BinaryOperator<Less> { };
+  struct LessEquals       : BinaryOperator<LessEquals> { };
+  struct Greater          : BinaryOperator<Greater> { };
+  struct GreaterEquals    : BinaryOperator<GreaterEquals> { };
+  struct Equals           : BinaryOperator<Equals> { };
+  struct NotEquals        : BinaryOperator<NotEquals> { };
+  struct BitAnd           : BinaryOperator<BitAnd> { };
+  struct BitXor           : BinaryOperator<BitXor> { };
+  struct BitOr            : BinaryOperator<BitOr> { };
+  struct LogicalAnd       : BinaryOperator<LogicalAnd> { };
+  struct LogicalOr        : BinaryOperator<LogicalOr> { };
+  struct Ternary          {
+                            Impl::ExprRef cond, taken, notTaken;
+                          };
+  struct Assignment       : BinaryOperator<Assignment> { };
+  struct AddAssign        : BinaryOperator<AddAssign> { };
+  struct SubAssign        : BinaryOperator<SubAssign> { };
+  struct MulAssign        : BinaryOperator<MulAssign> { };
+  struct DivAssign        : BinaryOperator<DivAssign> { };
+  struct ModAssign        : BinaryOperator<ModAssign> { };
+  struct ShiftLeftAssign  : BinaryOperator<ShiftLeftAssign> { };
+  struct ShiftRightAssign : BinaryOperator<ShiftRightAssign> { };
+  struct BitAndAssign     : BinaryOperator<BitAndAssign> { };
+  struct BitXorAssign     : BinaryOperator<BitXorAssign> { };
+  struct BitOrAssign      : BinaryOperator<BitOrAssign> { };
+
   struct Decl {
     Impl::ExprRef type;
     Identifier ident;
-    std::deque<Expression> arguments;
+    Impl::ExprRef initValue;
   };
+
+  struct FunctionDeclParameter {
+    Impl::ExprRef type;
+    Identifier ident;
+    Impl::ExprRef default_value;
+  };
+
+  using FunctionDeclParameters = std::deque<FunctionDeclParameter>;
+
+  struct ParameterList {
+    FunctionDeclParameters positional_parameters;
+    FunctionDeclParameters nominal_parameters;
+  };
+
   struct FunctionDecl {
     Impl::ExprRef retType;
     Identifier ident;
-    std::deque<Decl> parameters;
+    ParameterList parameters;
     Impl::StmtRef funcBody;
   };
-  struct NoOp            {
-                           inline constexpr static auto prec = 0;
-                           using trigger = decltype(";"_token);
-                         };
+
+  struct NoOp { };
 
   struct LiteralExpression {
-    std::vector<Tokens::Literal> literals;
+    std::string_view text;
   };
 
-  struct CompoundStatement { std::deque<Statement> stmts; };
-  struct ASTExpr: CompoundStatement { };
+  struct CompoundStatement { Statements stmts; };
   
+  using Expression = std::variant<
+      MemberAccess
+    , Postincrement
+    , Postdecrement
+    , FCall
+    , Subscript
+    , Preincrement
+    , Predecrement
+    , UnaryPlus
+    , UnaryMinus
+    , UnaryNot
+    , BitNot
+    , Dereference
+    , Addressof
+    , MemberDeref
+    , Multiplication
+    , Division
+    , Modulus
+    , Addition
+    , Subtraction
+    , LeftShift
+    , RightShift
+    , Compare
+    , Less
+    , LessEquals
+    , Greater
+    , GreaterEquals
+    , Equals
+    , NotEquals
+    , BitAnd
+    , BitXor
+    , BitOr
+    , LogicalAnd
+    , LogicalOr
+    , Ternary
+    , Assignment
+    , AddAssign
+    , SubAssign
+    , MulAssign
+    , DivAssign
+    , ModAssign
+    , ShiftLeftAssign
+    , ShiftRightAssign
+    , BitAndAssign
+    , BitXorAssign
+    , BitOrAssign
+    , Identifier
+    , LiteralExpression
+    , Decl
+    , FunctionDecl
+    , NoOp
+  >;
+
   namespace Impl {
-    using ExpressionVar = std::variant<
-        MemberAccess
-      , Postincrement
-      , Postdecrement
-      , FCall
-      , Subscript
-      , Preincrement
-      , Predecrement
-      , UnaryPlus
-      , UnaryMinus
-      , UnaryNot
-      , BitNot
-      , Dereference
-      , Addressof
-      , MemberDeref
-      , Multiplication
-      , Division
-      , Modulus
-      , Addition
-      , Subtraction
-      , LeftShift
-      , RightShift
-      , Compare
-      , Less
-      , LessEquals
-      , Greater
-      , GreaterEquals
-      , Equals
-      , NotEquals
-      , BitAnd
-      , BitXor
-      , BitOr
-      , LogicalAnd
-      , LogicalOr
-      , Ternary
-      , Assignment
-      , AddAssign
-      , SubAssign
-      , MulAssign
-      , DivAssign
-      , ModAssign
-      , ShiftLeftAssign
-      , ShiftRightAssign
-      , BitAndAssign
-      , BitXorAssign
-      , BitOrAssign
-      , Identifier
-      , LiteralExpression
-      , Tokens::Number
-      , Tokens::Float
-      , Decl
-      , FunctionDecl
-      , NoOp
-      , ASTExpr
-    >;
+    struct Expression: Meter::AST::Expression {
+      using Meter::AST::Expression::Expression;
+      Expression(Meter::AST::Expression &&sv): Meter::AST::Expression{std::move(sv)} { }
+    };
   }
 
-  struct Expression: Impl::ExpressionVar {
-    using Impl::ExpressionVar::ExpressionVar;
-    Expression(Impl::ExpressionVar &&sv): Impl::ExpressionVar{std::move(sv)} { }
-  };
+  inline auto makeExpression(Meter::AST::Expression &&e) {
+    return std::make_unique<Meter::AST::Impl::Expression>(std::move(e));
+  }
 
   struct IfStatement { Expression condition; Impl::StmtRef taken, notTaken; };
   struct ForStatement { Expression init, cond, iter; Impl::StmtRef body; };
@@ -199,120 +217,34 @@ namespace Meter::AST {
   struct DoWhile { Impl::StmtRef body; Expression cond; };
   struct ReturnStatement { Expression expr; };
 
+  using Statement = std::variant<
+      IfStatement
+    , ForStatement
+    , ExpressionStatment
+    , CompoundStatement
+    , StructDeclaration
+    , DoWhile
+    , ReturnStatement
+  >;
+
   namespace Impl {
-    using StatementVar = std::variant<
-        IfStatement
-      , ForStatement
-      , ExpressionStatment
-      , CompoundStatement
-      , StructDeclaration
-      , DoWhile
-      , ReturnStatement
-    >;
+    struct Statement: Meter::AST::Statement {
+      using Meter::AST::Statement::Statement;
+      Statement(Meter::AST::Statement &&sv): Meter::AST::Statement{std::move(sv)} { }
+    };
   }
 
-  struct Statement: Impl::StatementVar {
-    using Impl::StatementVar::StatementVar;
-    Statement(Impl::StatementVar &&sv): Impl::StatementVar{std::move(sv)} { }
-  };
-
-  using Statements = std::deque<Statement>;
-
-  std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp);
-  std::ostream &operator<<(std::ostream &os, Impl::StatementVar  const &stmt);
-
-  template<typename T>
-  void printExprs(std::ostream &os, T const &exprs) {
-    if(!std::distance(std::begin(exprs), std::end(exprs))) return;
-    std::copy(std::begin(exprs), std::end(exprs) - 1, std::ostream_iterator<typename T::value_type>(os, ","));
-    os << exprs.back();
+  inline auto makeStatement(Meter::AST::Statement &&s) {
+    return std::make_unique<Meter::AST::Impl::Statement>(std::move(s));
   }
 
-  template<typename T>
-  void printStmts(std::ostream &os, T const &stmts) {
-    std::copy(std::begin(stmts), std::end(stmts), std::ostream_iterator<typename T::value_type>(os));
-  }
-
-  template <typename Token, typename Assoc, int prec>
-  std::ostream &operator<<(std::ostream &os, Impl::BinaryOperator<Token, Assoc, prec> const &bop) {
-    os << '(' << *bop.lhs << Token::value << *bop.rhs << ')';
-    return os;
-  }
-
-  template<typename Token, typename Assoc, int prec>
-  std::ostream &operator<<(std::ostream &os, Impl::UnaryOperator<Token, Assoc, prec> const &uop) {
-    if constexpr (std::is_same_v<Assoc, LeftAssociative>) {
-      os << '(' << *uop.operand << Token::value << ')';
-    } else {
-      os << '(' << Token::value << *uop.operand << ')';
-    }
-    return os;
-  }
-
-  inline std::ostream &operator<<(std::ostream &os, Decl const &decl) {
-    os << '[' << *decl.type << " <" << decl.ident.value << ">{";
-    printExprs(os, decl.arguments);
-    os << "}]";
-    return os;
-  }
-
-  inline std::ostream &operator<<(std::ostream &os, FunctionDecl const &decl) {
-    os << '[' << *decl.retType << " <" << decl.ident.value << ">(";
-    printExprs(os, decl.parameters);
-    os << ")]";
-    if(decl.funcBody)
-      os << *decl.funcBody;
-    return os;
-  }
-
-  inline std::ostream &operator<<(std::ostream &os, Impl::ExpressionVar const &exp) {
-    std::visit(Overload{
-        [&](NoOp)               { os << "<NoOp>"; }
-      , [&](Ternary const &t)   { os << '(' << *t.cond << '?' << *t.taken << ':' << *t.notTaken << ')'; }
-      , [&](FCall const &f)     { os << *f.callee << '('; printExprs(os, f.arguments); os << ')'; }
-      , [&](Subscript const &s) { os << *s.callee << '['; printExprs(os, s.arguments); os << ']'; }
-      , [&](ASTExpr const &s)   { os << "%{"; printStmts(os, s.stmts); os << "}"; }
-      , [&](auto const &op)     { os << op; }
-
-      , [&](Tokens::Literal const &l)    { os << '"' << l.value << '"'; }
-      , [&](Tokens::Number const &n)     { os << n.value << 'i'; }
-      , [&](Tokens::Float const &n)      { os << n.value << 'f'; }
-      , [&](Tokens::Identifier const &n) { os << '<' << n.value << '>'; }
-    }, exp);
-    return os;
-  }
-
-  inline std::ostream &operator<<(std::ostream &os, IfStatement const &fi) {
-    os << "if (" << fi.condition << ") " << *fi.taken;
-    if(fi.notTaken) os << " else " << *fi.notTaken;
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, ForStatement const &fr) {
-    os << "for (" << fr.init << "; " << fr.cond << "; " << fr.iter << ") " << *fr.body;
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, ExpressionStatment const &fe) {
-    os << fe.expr << ';';
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, CompoundStatement const &fc) {
-    os << "{ "; printStmts(os, fc.stmts); os << " }";
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, StructDeclaration const &str) {
-    os << "struct " << str.ident.value << " " << *str.contents;
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, DoWhile const &dw) {
-    os << "do " << *dw.body << " while (" << dw.cond << ");";
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, ReturnStatement const &ret) {
-    os << "return " << ret.expr << ';';
-    return os;
-  }
-  inline std::ostream &operator<<(std::ostream &os, Impl::StatementVar const &stmt) {
-    std::visit([&](auto const &stmt) { os << stmt; }, stmt);
-    return os;
-  }
+  using Statement = std::variant<
+      IfStatement
+    , ForStatement
+    , ExpressionStatment
+    , CompoundStatement
+    , StructDeclaration
+    , DoWhile
+    , ReturnStatement
+  >;
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Meter/Token.hh"
 #include "Meter/AST.hh"
 
 #include <variant>
@@ -91,20 +90,23 @@ namespace Meter::Language {
   struct FunctionType {
     mutable TypeRef returnType;
     mutable std::set<NamedValue> arguments;
+    //mutable std::function<Value(decltype(arguments))> meter;
+    //mutable std::variant<std::monostate, > implementation
   };
 
-  using Value = std::variant<FunctionType
-                           , Scope
-                           , TypeRef
-                           , TypeValue
-                           , BuiltinType<std::uintptr_t>
-                           , BuiltinType<std::intptr_t>
-                           , BuiltinType<void>
-                           , BuiltinType<float>
-                           , BuiltinType<double>
-                           , BuiltinType<Meter::Tokens::Number>
-                           , BuiltinType<Meter::Tokens::Literal>
-                           , BuiltinType<Meter::Language::Identifier>
+  using Value = std::variant<
+      FunctionType
+    , Scope
+    , TypeRef
+    , TypeValue
+    , BuiltinType<std::uintptr_t>
+    , BuiltinType<std::intptr_t>
+    , BuiltinType<void>
+    , BuiltinType<float>
+    , BuiltinType<double>
+    , BuiltinType<Meter::Tokens::Number>
+    , BuiltinType<Meter::Tokens::Literal>
+    , BuiltinType<Meter::Language::Identifier>
   >;
 
   using MeterFunction = std::function<Meter::Language::Value(std::set<NamedValue>)>;

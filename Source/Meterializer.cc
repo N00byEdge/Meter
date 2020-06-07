@@ -16,15 +16,15 @@ namespace {
     }
   }
 
-  /*auto iptrScope = std::make_shared<Meter::Language::Scope>();
+  auto iptrScope = std::make_shared<Meter::Language::Scope>();
 
-  auto ListScope = std::make_shared<Meter::Language::Scope>({
+  /*auto ListScope = std::make_shared<Meter::Language::Scope>({
     Meter::Language::NamedValue{-1, "List"}, Meter::Language::TypeRef{
       std::make_shared<Meter::Language::Scope>({
         Meter::Language::NamedValue{{-1, "length"}}
       })
     }
-  });
+  });*/
 
   Meter::Language::Scope rootScope{{
     Meter::Language::NamedValue{{-1, "CompilerIntrinsics"}, Meter::Language::Scope{{
@@ -47,7 +47,7 @@ namespace {
     }}}
   }};
 
-  auto val = getIfType(*rootScope.namedValues.begin());*/
+  //auto val = getIfType(*rootScope.namedValues.begin());
 }
 
 namespace Meter::Language {
